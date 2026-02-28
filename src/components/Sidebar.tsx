@@ -112,8 +112,13 @@ export function Sidebar({ className }: { className?: string }) {
 
                 {/* User / Logout */}
                 <div className="flex items-center justify-between px-2">
-                    <Link href="/configuracoes" className="text-sm font-bold text-brand-green truncate max-w-[140px] hover:underline" title="Editar Perfil">
-                        {user?.user_metadata?.display_name || user?.email?.split('@')[0] || "Usuário"}
+                    <Link href="/configuracoes" className="flex flex-col hover:opacity-80 transition-opacity" title="Editar Perfil">
+                        <div className="w-8 h-8 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center text-brand-green font-bold text-sm mb-1">
+                            {user?.user_metadata?.display_name ? user.user_metadata.display_name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || "U")}
+                        </div>
+                        <span className="text-xs font-bold text-white truncate max-w-[140px]">
+                            {user?.user_metadata?.display_name || user?.email?.split('@')[0] || "Usuário"}
+                        </span>
                     </Link>
                     <button
                         onClick={signOut}

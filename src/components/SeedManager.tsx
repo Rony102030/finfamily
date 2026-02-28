@@ -16,30 +16,32 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
         inited.current = true;
 
         const initData = async () => {
-            // Cleanup duplicates
+            // Cleanup duplicates for current user only
             const cleanupDups = async () => {
-                const { data } = await supabase.from('categorias').select('id, nome').order('created_at', { ascending: true });
-                if (data) {
+                const { data: categorias } = await supabase.from('categorias').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
+                if (categorias) {
                     const seen = new Set();
-                    for (const item of data) {
-                        if (seen.has(item.nome)) await supabase.from('categorias').delete().eq('id', item.id);
-                        else seen.add(item.nome);
+                    for (const item of categorias) {
+                        if (seen.has(item.nome.trim().toLowerCase())) await supabase.from('categorias').delete().eq('id', item.id);
+                        else seen.add(item.nome.trim().toLowerCase());
                     }
                 }
-                const { data: cart } = await supabase.from('carteiras').select('id, nome').order('created_at', { ascending: true });
-                if (cart) {
+
+                const { data: carteiras } = await supabase.from('carteiras').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
+                if (carteiras) {
                     const seen = new Set();
-                    for (const item of cart) {
-                        if (seen.has(item.nome)) await supabase.from('carteiras').delete().eq('id', item.id);
-                        else seen.add(item.nome);
+                    for (const item of carteiras) {
+                        if (seen.has(item.nome.trim().toLowerCase())) await supabase.from('carteiras').delete().eq('id', item.id);
+                        else seen.add(item.nome.trim().toLowerCase());
                     }
                 }
-                const { data: font } = await supabase.from('fontes_renda').select('id, nome').order('created_at', { ascending: true });
-                if (font) {
+
+                const { data: fontes } = await supabase.from('fontes_renda').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
+                if (fontes) {
                     const seen = new Set();
-                    for (const item of font) {
-                        if (seen.has(item.nome)) await supabase.from('fontes_renda').delete().eq('id', item.id);
-                        else seen.add(item.nome);
+                    for (const item of fontes) {
+                        if (seen.has(item.nome.trim().toLowerCase())) await supabase.from('fontes_renda').delete().eq('id', item.id);
+                        else seen.add(item.nome.trim().toLowerCase());
                     }
                 }
             };
