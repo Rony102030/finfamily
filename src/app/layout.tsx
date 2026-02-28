@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Syne, DM_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -14,6 +14,14 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "FinFamily | Inteligência Financeira",
   description: "Gestão Financeira Familiar com Inteligência Artificial",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#070910",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 import { AuthProvider } from "@/components/AuthProvider";
