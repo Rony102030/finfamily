@@ -154,7 +154,7 @@ export default function FundosPage() {
                                 />
                                 <Area type="monotone" dataKey="Renda Fixa" stroke="#4d9fff" fillOpacity={1} fill="url(#colorFixo)" strokeWidth={2} />
                                 <Area type="monotone" dataKey="Emergência" stroke="#ffc94d" fillOpacity={1} fill="url(#colorEme)" strokeWidth={2} />
-                                {userConfig?.pct_outro > 0 && (
+                                {(userConfig?.pct_outro || 0) > 0 && (
                                     <Area type="monotone" dataKey="Outro" stroke="#b57bff" fillOpacity={1} fill="url(#colorOut)" strokeWidth={2} />
                                 )}
                             </AreaChart>
@@ -178,7 +178,7 @@ export default function FundosPage() {
                                     <th className="pb-3 px-4 font-medium">Mês</th>
                                     <th className="pb-3 px-4 font-medium">Renda Fixa</th>
                                     <th className="pb-3 px-4 font-medium">Emergência</th>
-                                    {userConfig?.pct_outro > 0 && <th className="pb-3 px-4 font-medium">{fundos?.outro_nome || 'Outro'}</th>}
+                                    {(userConfig?.pct_outro || 0) > 0 && <th className="pb-3 px-4 font-medium">{fundos?.outro_nome || 'Outro'}</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-borders">
@@ -187,7 +187,7 @@ export default function FundosPage() {
                                         <td className="py-4 px-4 font-semibold text-white">{h.mes}</td>
                                         <td className="py-4 px-4 text-brand-blue">+ R$ {h.fixo.toFixed(2)}</td>
                                         <td className="py-4 px-4 text-brand-yellow">+ R$ {h.emergencia.toFixed(2)}</td>
-                                        {userConfig?.pct_outro > 0 && <td className="py-4 px-4 text-brand-purple">+ R$ {h.outro.toFixed(2)}</td>}
+                                        {(userConfig?.pct_outro || 0) > 0 && <td className="py-4 px-4 text-brand-purple">+ R$ {h.outro.toFixed(2)}</td>}
                                     </tr>
                                 ))}
                             </tbody>
