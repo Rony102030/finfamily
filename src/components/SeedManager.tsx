@@ -16,51 +16,6 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
         inited.current = true;
 
         const initData = async () => {
-            const cleanupDups = async () => {
-                const { data: categorias } = await supabase.from('categorias').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
-                if (categorias) {
-                    const seen = new Map();
-                    for (const item of categorias) {
-                        const nome = item.nome.trim().toLowerCase();
-                        if (seen.has(nome)) {
-                            const originalId = seen.get(nome);
-                            await supabase.from('lancamentos').update({ categoria_id: originalId }).eq('categoria_id', item.id);
-                            await supabase.from('recorrentes').update({ categoria_id: originalId }).eq('categoria_id', item.id);
-                            await supabase.from('subcategorias').update({ categoria_id: originalId }).eq('categoria_id', item.id);
-                            await supabase.from('categorias').delete().eq('id', item.id);
-                        } else seen.set(nome, item.id);
-                    }
-                }
-
-                const { data: carteiras } = await supabase.from('carteiras').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
-                if (carteiras) {
-                    const seen = new Map();
-                    for (const item of carteiras) {
-                        const nome = item.nome.trim().toLowerCase();
-                        if (seen.has(nome)) {
-                            const originalId = seen.get(nome);
-                            await supabase.from('lancamentos').update({ carteira_id: originalId }).eq('carteira_id', item.id);
-                            await supabase.from('recorrentes').update({ carteira_id: originalId }).eq('carteira_id', item.id);
-                            await supabase.from('carteiras').delete().eq('id', item.id);
-                        } else seen.set(nome, item.id);
-                    }
-                }
-
-                const { data: fontes } = await supabase.from('fontes_renda').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
-                if (fontes) {
-                    const seen = new Map();
-                    for (const item of fontes) {
-                        const nome = item.nome.trim().toLowerCase();
-                        if (seen.has(nome)) {
-                            const originalId = seen.get(nome);
-                            await supabase.from('lancamentos').update({ fonte_renda_id: originalId }).eq('fonte_renda_id', item.id);
-                            await supabase.from('fontes_renda').delete().eq('id', item.id);
-                        } else seen.set(nome, item.id);
-                    }
-                }
-            };
-            await cleanupDups();
-
             // Fetch Config
             const { data: configData, error: configErr } = await supabase
                 .from('config')
