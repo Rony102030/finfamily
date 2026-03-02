@@ -25,6 +25,8 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
                         if (seen.has(nome)) {
                             const originalId = seen.get(nome);
                             await supabase.from('lancamentos').update({ categoria_id: originalId }).eq('categoria_id', item.id);
+                            await supabase.from('recorrentes').update({ categoria_id: originalId }).eq('categoria_id', item.id);
+                            await supabase.from('subcategorias').update({ categoria_id: originalId }).eq('categoria_id', item.id);
                             await supabase.from('categorias').delete().eq('id', item.id);
                         } else seen.set(nome, item.id);
                     }
@@ -38,6 +40,7 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
                         if (seen.has(nome)) {
                             const originalId = seen.get(nome);
                             await supabase.from('lancamentos').update({ carteira_id: originalId }).eq('carteira_id', item.id);
+                            await supabase.from('recorrentes').update({ carteira_id: originalId }).eq('carteira_id', item.id);
                             await supabase.from('carteiras').delete().eq('id', item.id);
                         } else seen.set(nome, item.id);
                     }
