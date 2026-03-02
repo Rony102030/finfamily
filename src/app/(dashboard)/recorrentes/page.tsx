@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
-import { Repeat, CheckCircle2, PlayCircle } from "lucide-react";
+import { Repeat, CheckCircle2, PlayCircle, Trash2 } from "lucide-react";
 
 export default function RecorrentesPage() {
     const { user } = useAuth();
@@ -82,6 +82,22 @@ export default function RecorrentesPage() {
         setSavingId(null);
     };
 
+    const handleDelete = async (descricao: string) => {
+        if (!confirm(`Deseja cancelar a conta recorrente "${descricao}"? Ela não aparecerá mais aqui nos próximos meses.\n(Os pagamentos anteriores no painel de Lançamentos não serão perdidos).`)) return;
+
+        const { error } = await supabase
+            .from('lancamentos')
+            .update({ recorrente: false })
+            .eq('user_id', user!.id)
+            .eq('descricao', descricao);
+
+        if (!error) {
+            setRecorrentes(recorrentes.filter(r => r.descricao.toLowerCase().trim() !== descricao.toLowerCase().trim()));
+        } else {
+            alert('Erro ao cancelar recorrência. Tente novamente.');
+        }
+    };
+
     if (loading) return <div className="p-8 text-foreground/50 animate-pulse">Buscando contas recorrentes...</div>;
 
     const pendentes = recorrentes.filter(r => !jaLancados.has(r.descricao.toLowerCase().trim()));
@@ -116,6 +132,13 @@ export default function RecorrentesPage() {
                                             <p className="text-xs text-foreground/50">{tx.categorias?.nome}</p>
                                         </div>
                                     </div>
+                                    <button
+                                        onClick={() => handleDelete(tx.descricao)}
+                                        className="p-2 text-foreground/50 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors"
+                                        title="Cancelar Recorrência"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                 </div>
                                 <p className="font-sans font-bold text-2xl text-brand-red mb-1">R$ {tx.valor.toFixed(2)}</p>
                                 <p className="text-xs text-foreground/50 mb-4">{tx.carteiras?.nome || 'Nenhuma carteira'}</p>
