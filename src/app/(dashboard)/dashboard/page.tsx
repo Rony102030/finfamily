@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
-import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
 function formatCurrency(value: number) {
@@ -16,6 +16,7 @@ export default function DashboardPage() {
     const { activeMonth, userConfig } = useAppStore();
 
     const [loading, setLoading] = useState(true);
+    const [showValues, setShowValues] = useState(true);
     const [txs, setTxs] = useState<any[]>([]);
     const [fundosTotal, setFundosTotal] = useState(0);
 
@@ -93,9 +94,14 @@ export default function DashboardPage() {
         <div className="space-y-6 animate-in fade-in duration-500">
             <header className="pb-6 border-b border-borders flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-heading font-bold text-white tracking-tight">
-                        Dashboard
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-heading font-bold text-white tracking-tight">
+                            Dashboard
+                        </h1>
+                        <button onClick={() => setShowValues(!showValues)} className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-foreground/70 hover:text-white hover:bg-white/10 transition-colors" title={showValues ? "Ocultar Valores" : "Mostrar Valores"}>
+                            {showValues ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                        </button>
+                    </div>
                     <p className="text-foreground/60 mt-1">
                         Visão geral de suas finanças em <span className="text-brand-green font-medium">{activeMonth}</span>
                     </p>
@@ -118,11 +124,11 @@ export default function DashboardPage() {
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <KpiCard title="Renda Bruta" value={rendaBruta} icon={<TrendingUp className="w-5 h-5" />} color="text-foreground/80" />
-                <KpiCard title="Líquido (p/ Gastos)" value={rendaLiquida} icon={<ArrowUpCircle className="w-5 h-5" />} color="text-brand-green" bgColor="bg-brand-green/10" />
-                <KpiCard title="Despesas Totais" value={despesasTotais} icon={<ArrowDownCircle className="w-5 h-5" />} color="text-brand-red" bgColor="bg-brand-red/10" />
-                <KpiCard title="Sobra do Mês" value={sobraMes} icon={<Banknote className="w-5 h-5" />} color={sobraMes >= 0 ? "text-brand-blue" : "text-brand-red"} bgColor={sobraMes >= 0 ? "bg-brand-blue/10" : "bg-brand-red/10"} />
-                <KpiCard title="Fundos Total (Todos meses)" value={fundosTotal} icon={<PiggyBank className="w-5 h-5" />} color="text-brand-yellow" bgColor="bg-brand-yellow/10" />
+                <KpiCard title="Renda Bruta" value={rendaBruta} icon={<TrendingUp className="w-5 h-5" />} color="text-foreground/80" showValues={showValues} />
+                <KpiCard title="Líquido (p/ Gastos)" value={rendaLiquida} icon={<ArrowUpCircle className="w-5 h-5" />} color="text-brand-green" bgColor="bg-brand-green/10" showValues={showValues} />
+                <KpiCard title="Despesas Totais" value={despesasTotais} icon={<ArrowDownCircle className="w-5 h-5" />} color="text-brand-red" bgColor="bg-brand-red/10" showValues={showValues} />
+                <KpiCard title="Sobra do Mês" value={sobraMes} icon={<Banknote className="w-5 h-5" />} color={sobraMes >= 0 ? "text-brand-blue" : "text-brand-red"} bgColor={sobraMes >= 0 ? "bg-brand-blue/10" : "bg-brand-red/10"} showValues={showValues} />
+                <KpiCard title="Fundos Total (Todos meses)" value={fundosTotal} icon={<PiggyBank className="w-5 h-5" />} color="text-brand-yellow" bgColor="bg-brand-yellow/10" showValues={showValues} />
             </div>
 
             {/* Charts Area */}
@@ -136,13 +142,13 @@ export default function DashboardPage() {
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={categoryChartData} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#232b3e" />
-                                    <XAxis type="number" stroke="#64748b" tickLine={false} axisLine={false} tickFormatter={(val) => formatCurrency(val)} />
+                                    <XAxis type="number" stroke="#64748b" tickLine={false} axisLine={false} tickFormatter={(val) => showValues ? formatCurrency(val) : ''} />
                                     <YAxis dataKey="nome" type="category" stroke="#f8fafc" tickLine={false} axisLine={false} fontSize={12} width={100} />
                                     <Tooltip
                                         cursor={{ fill: '#232b3e', opacity: 0.4 }}
                                         contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff' }}
                                         itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                                        formatter={(value: any) => [`${formatCurrency(Number(value))}`, 'Gasto']}
+                                        formatter={(value: any) => [`${showValues ? formatCurrency(Number(value)) : '••••••'}`, 'Gasto']}
                                     />
                                     <Bar dataKey="valor" radius={[0, 4, 4, 0]} barSize={24}>
                                         {categoryChartData.map((entry, index) => (
@@ -181,7 +187,7 @@ export default function DashboardPage() {
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff', zIndex: 50 }}
                                         itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                                        formatter={(value: any, name: any) => [`${formatCurrency(Number(value))}`, name]}
+                                        formatter={(value: any, name: any) => [`${showValues ? formatCurrency(Number(value)) : '••••••'}`, name]}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -203,7 +209,7 @@ export default function DashboardPage() {
                                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.color }}></div>
                                         <span className="text-foreground/80">{d.name}</span>
                                     </div>
-                                    <span className="font-bold text-white">{formatCurrency(d.value)}</span>
+                                    <span className="font-bold text-white">{showValues ? formatCurrency(d.value) : '••••••'}</span>
                                 </div>
                             ))}
                         </div>
@@ -215,7 +221,7 @@ export default function DashboardPage() {
     );
 }
 
-function KpiCard({ title, value, icon, color, bgColor = "bg-surface" }: { title: string, value: number, icon: any, color: string, bgColor?: string }) {
+function KpiCard({ title, value, icon, color, bgColor = "bg-surface", showValues = true }: { title: string, value: number, icon: any, color: string, bgColor?: string, showValues?: boolean }) {
     return (
         <div className={`border border-borders rounded-2xl p-5 ${bgColor} bg-opacity-30 backdrop-blur-sm relative overflow-hidden group`}>
             <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full opacity-20 transition-transform group-hover:scale-150 ${color.replace('text-', 'bg-')}`}></div>
@@ -226,7 +232,7 @@ function KpiCard({ title, value, icon, color, bgColor = "bg-surface" }: { title:
                 <span>{title}</span>
             </div>
             <p className="text-2xl font-sans font-bold text-white tracking-tight">
-                {formatCurrency(value)}
+                {showValues ? formatCurrency(value) : '••••••'}
             </p>
         </div>
     );

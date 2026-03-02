@@ -117,7 +117,7 @@ export function Sidebar({ className }: { className?: string }) {
                             {user?.user_metadata?.display_name ? user.user_metadata.display_name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || "U")}
                         </div>
                         <span className="text-xs font-bold text-white truncate max-w-[140px]">
-                            {user?.user_metadata?.display_name || user?.email?.split('@')[0] || "Usuário"}
+                            {user?.user_metadata?.display_name || user?.email?.charAt(0).toUpperCase() || "Usuário"}
                         </span>
                     </Link>
                     <button
