@@ -140,7 +140,8 @@ export default function DashboardPage() {
                                     <YAxis dataKey="nome" type="category" stroke="#f8fafc" tickLine={false} axisLine={false} fontSize={12} width={100} />
                                     <Tooltip
                                         cursor={{ fill: '#232b3e', opacity: 0.4 }}
-                                        contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff', fontWeight: 'bold' }}
+                                        contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff' }}
+                                        itemStyle={{ color: '#fff', fontWeight: 'bold' }}
                                         formatter={(value: any) => [`${formatCurrency(Number(value))}`, 'Gasto']}
                                     />
                                     <Bar dataKey="valor" radius={[0, 4, 4, 0]} barSize={24}>
@@ -178,8 +179,9 @@ export default function DashboardPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff', fontWeight: 'bold' }}
-                                        formatter={(value: any) => [`${formatCurrency(Number(value))}`]}
+                                        contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff', zIndex: 50 }}
+                                        itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                                        formatter={(value: any, name: any) => [`${formatCurrency(Number(value))}`, name]}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
