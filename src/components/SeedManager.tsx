@@ -16,32 +16,43 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
         inited.current = true;
 
         const initData = async () => {
-            // Cleanup duplicates for current user only
             const cleanupDups = async () => {
                 const { data: categorias } = await supabase.from('categorias').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
                 if (categorias) {
-                    const seen = new Set();
+                    const seen = new Map();
                     for (const item of categorias) {
-                        if (seen.has(item.nome.trim().toLowerCase())) await supabase.from('categorias').delete().eq('id', item.id);
-                        else seen.add(item.nome.trim().toLowerCase());
+                        const nome = item.nome.trim().toLowerCase();
+                        if (seen.has(nome)) {
+                            const originalId = seen.get(nome);
+                            await supabase.from('lancamentos').update({ categoria_id: originalId }).eq('categoria_id', item.id);
+                            await supabase.from('categorias').delete().eq('id', item.id);
+                        } else seen.set(nome, item.id);
                     }
                 }
 
                 const { data: carteiras } = await supabase.from('carteiras').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
                 if (carteiras) {
-                    const seen = new Set();
+                    const seen = new Map();
                     for (const item of carteiras) {
-                        if (seen.has(item.nome.trim().toLowerCase())) await supabase.from('carteiras').delete().eq('id', item.id);
-                        else seen.add(item.nome.trim().toLowerCase());
+                        const nome = item.nome.trim().toLowerCase();
+                        if (seen.has(nome)) {
+                            const originalId = seen.get(nome);
+                            await supabase.from('lancamentos').update({ carteira_id: originalId }).eq('carteira_id', item.id);
+                            await supabase.from('carteiras').delete().eq('id', item.id);
+                        } else seen.set(nome, item.id);
                     }
                 }
 
                 const { data: fontes } = await supabase.from('fontes_renda').select('id, nome').eq('user_id', user.id).order('created_at', { ascending: true });
                 if (fontes) {
-                    const seen = new Set();
+                    const seen = new Map();
                     for (const item of fontes) {
-                        if (seen.has(item.nome.trim().toLowerCase())) await supabase.from('fontes_renda').delete().eq('id', item.id);
-                        else seen.add(item.nome.trim().toLowerCase());
+                        const nome = item.nome.trim().toLowerCase();
+                        if (seen.has(nome)) {
+                            const originalId = seen.get(nome);
+                            await supabase.from('lancamentos').update({ fonte_renda_id: originalId }).eq('fonte_renda_id', item.id);
+                            await supabase.from('fontes_renda').delete().eq('id', item.id);
+                        } else seen.set(nome, item.id);
                     }
                 }
             };

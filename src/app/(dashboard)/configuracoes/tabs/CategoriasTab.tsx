@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
-import { Plus, Edit2, Check, X } from "lucide-react";
+import { Plus, Edit2, Check, X, Trash2 } from "lucide-react";
 
 interface Item {
     id: string;
@@ -88,6 +88,17 @@ export function CategoriasTab() {
         if (!error) {
             setItems(items.map(i => i.id === id ? { ...i, ...updates } : i));
             setEditingId(null);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Tem certeza que deseja apagar esta categoria?")) return;
+
+        const { error } = await supabase.from('categorias').delete().eq('id', id);
+        if (!error) {
+            setItems(items.filter(i => i.id !== id));
+        } else {
+            alert("Não foi possível excluir. Talvez existam lançamentos vinculados.");
         }
     };
 
@@ -194,6 +205,13 @@ export function CategoriasTab() {
                                 </div>
 
                                 <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleDelete(item.id)}
+                                        className="p-2 text-brand-red/70 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors"
+                                        title="Excluir"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                     <button
                                         onClick={() => startEdit(item)}
                                         className="p-2 text-foreground/50 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg transition-colors"

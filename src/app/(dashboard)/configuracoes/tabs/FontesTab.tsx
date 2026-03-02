@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
-import { Plus, Edit2, Check, X } from "lucide-react";
+import { Plus, Edit2, Check, X, Trash2 } from "lucide-react";
 
 interface Item {
     id: string;
@@ -70,6 +70,17 @@ export function FontesTab() {
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm("Tem certeza que deseja apagar esta fonte de renda?")) return;
+
+        const { error } = await supabase.from('fontes_renda').delete().eq('id', id);
+        if (!error) {
+            setItems(items.filter(i => i.id !== id));
+        } else {
+            alert("Não foi possível excluir. Talvez existam lançamentos vinculados.");
+        }
+    };
+
     if (loading) return <div className="animate-pulse h-20 bg-surface rounded"></div>;
 
     return (
@@ -129,6 +140,13 @@ export function FontesTab() {
                                 </div>
 
                                 <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleDelete(item.id)}
+                                        className="p-2 text-brand-red/70 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors"
+                                        title="Excluir"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                     <button
                                         onClick={() => startEdit(item)}
                                         className="p-2 text-foreground/50 hover:text-brand-blue hover:bg-brand-blue/10 rounded-lg transition-colors"
