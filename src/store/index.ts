@@ -6,6 +6,7 @@ export interface UserConfig {
     pct_emergencia: number;
     pct_outro: number;
     outro_nome: string | null;
+    servico_extra_nome: string | null;
     seed_done: boolean;
 }
 

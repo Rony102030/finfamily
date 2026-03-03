@@ -32,6 +32,7 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
                     pct_emergencia: configData.pct_emergencia,
                     pct_outro: configData.pct_outro,
                     outro_nome: configData.outro_nome,
+                    servico_extra_nome: configData.servico_extra_nome,
                     seed_done: configData.seed_done
                 });
                 setLoading(false);
@@ -49,6 +50,7 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
                 pct_fixo: 5,
                 pct_emergencia: 10,
                 pct_outro: 0,
+                servico_extra_nome: 'Serviço Extra',
                 seed_done: true
             }).select().single();
 

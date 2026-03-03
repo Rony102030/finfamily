@@ -16,13 +16,14 @@ import {
     Settings,
     LogOut,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Briefcase
 } from "lucide-react";
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
     const { signOut, user } = useAuth();
-    const { activeMonth, setActiveMonth } = useAppStore();
+    const { activeMonth, setActiveMonth, userConfig } = useAppStore();
 
     const navLinks = [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -32,6 +33,7 @@ export function Sidebar({ className }: { className?: string }) {
         { href: "/recorrentes", label: "Recorrentes", icon: Repeat },
         { href: "/relatorios", label: "Relatórios", icon: BarChart2 },
         { href: "/calculadora", label: "Calculadora", icon: Calculator },
+        { href: "/servico-extra", label: userConfig?.servico_extra_nome || "Serviço Extra", icon: Briefcase },
         { href: "/antigravity", label: "AntiGravity IA", icon: Bot },
         { href: "/configuracoes", label: "Configurações", icon: Settings },
     ];
