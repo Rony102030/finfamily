@@ -31,7 +31,7 @@ export function Sidebar({ className }: { className?: string }) {
     const [hasUnreadUpdates, setHasUnreadUpdates] = useState(false);
 
     // Updates List
-    const LATEST_UPDATE_VERSION = "v1-2026-03-08";
+    const LATEST_UPDATE_VERSION = "v2-2026-03-08";
 
     useEffect(() => {
         const readVersion = localStorage.getItem('finfamily_updates_read');
@@ -53,16 +53,16 @@ export function Sidebar({ className }: { className?: string }) {
     // Updates List
     const latestUpdates = [
         {
-            title: "Edição de Lançamentos",
-            desc: "Agora você pode editar qualquer lançamento feito anteriormente."
+            title: "Lançamento Manual de Fundos",
+            desc: "As porcentagens de fundos não são mais retiradas automaticamente da Renda. Agora você deve lançar uma Despesa com a Categoria 'Fundos'."
         },
         {
-            title: "Despesas Parceladas",
-            desc: "Nova opção de repetição para lançar parcelas automáticas."
+            title: "Novos Fundos 4 e 5",
+            desc: "Você agora pode configurar e nomear dinamicamente até 5 fundos separados na aba Configurações."
         },
         {
-            title: "Relatório de Parcelas",
-            desc: "Card inteligente agrupando suas parcelas restantes no período."
+            title: "Nova Categoria Base",
+            desc: "A categoria 'Fundos' e subcategorias 'Renda Fixa' e 'Emergência' foram adicionadas automaticamente."
         }
     ];
 

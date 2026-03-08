@@ -40,7 +40,7 @@ export default function DashboardPage() {
         // Load total funds across all time
         const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
         if (f) {
-            setFundosTotal((f.fixo_saldo || 0) + (f.emergencia_saldo || 0) + (f.outro_saldo || 0));
+            setFundosTotal((f.fixo_saldo || 0) + (f.emergencia_saldo || 0) + (f.outro_saldo || 0) + (f.fundo4_saldo || 0) + (f.fundo5_saldo || 0));
         }
 
         setLoading(false);
@@ -58,17 +58,17 @@ export default function DashboardPage() {
     txs.forEach(t => {
         if (t.tipo === 'renda') {
             rendaBruta += t.valor;
-            // recalculate discounts if they were made (assuming they use config rates, this is an approximation for the KPI)
-            if (userConfig) {
-                descontosFundos += t.valor * ((userConfig.pct_fixo + userConfig.pct_emergencia + userConfig.pct_outro) / 100);
-            }
         } else {
-            despesasTotais += t.valor;
-            if (t.categorias) {
-                if (!categoryTotals[t.categorias.nome]) {
-                    categoryTotals[t.categorias.nome] = { nome: t.categorias.nome, cor: t.categorias.cor, valor: 0, limite: t.categorias.limite_mensal || 0 };
+            if (t.categorias && t.categorias.nome.toLowerCase() === 'fundos') {
+                descontosFundos += t.valor;
+            } else {
+                despesasTotais += t.valor;
+                if (t.categorias) {
+                    if (!categoryTotals[t.categorias.nome]) {
+                        categoryTotals[t.categorias.nome] = { nome: t.categorias.nome, cor: t.categorias.cor, valor: 0, limite: t.categorias.limite_mensal || 0 };
+                    }
+                    categoryTotals[t.categorias.nome].valor += t.valor;
                 }
-                categoryTotals[t.categorias.nome].valor += t.valor;
             }
         }
     });

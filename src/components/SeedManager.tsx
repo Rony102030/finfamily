@@ -31,7 +31,13 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
                     pct_fixo: configData.pct_fixo,
                     pct_emergencia: configData.pct_emergencia,
                     pct_outro: configData.pct_outro,
-                    outro_nome: configData.outro_nome,
+                    pct_fundo4: configData.pct_fundo4 || 0,
+                    pct_fundo5: configData.pct_fundo5 || 0,
+                    fixo_nome: configData.fixo_nome || null,
+                    emergencia_nome: configData.emergencia_nome || null,
+                    outro_nome: configData.outro_nome || null,
+                    fundo4_nome: configData.fundo4_nome || null,
+                    fundo5_nome: configData.fundo5_nome || null,
                     servico_extra_nome: configData.servico_extra_nome,
                     seed_done: configData.seed_done
                 });
@@ -80,11 +86,22 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
                 { nome: 'Educação', icone: '📚', cor: '#fbbf24' },
                 { nome: 'Assinaturas', icone: '📱', cor: '#fb923c' },
                 { nome: 'Faturas / Outros', icone: '🧾', cor: '#94a3b8' },
+                { nome: 'Fundos', icone: '🐷', cor: '#4d9fff' },
             ];
 
-            await supabase.from('categorias').insert(
+            const { data: insertedCats } = await supabase.from('categorias').insert(
                 categoriasSeed.map(c => ({ user_id: userId, ...c }))
-            );
+            ).select();
+
+            if (insertedCats) {
+                const fundosCat = insertedCats.find(c => c.nome === 'Fundos');
+                if (fundosCat) {
+                    await supabase.from('subcategorias').insert([
+                        { user_id: userId, categoria_id: fundosCat.id, nome: 'Renda Fixa' },
+                        { user_id: userId, categoria_id: fundosCat.id, nome: 'Emergência' }
+                    ]);
+                }
+            }
 
             // Fontes
             await supabase.from('fontes_renda').insert([

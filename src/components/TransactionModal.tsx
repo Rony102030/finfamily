@@ -115,16 +115,8 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
 
     const filteredSubcategorias = subcategorias.filter(s => s.categoria_id === categoriaId);
 
-    // Previews for Renda
+    // No more automatic previews for Renda
     const numVal = parseFloat(valor.replace(',', '.')) || 0;
-    let valFixo = 0, valEmergencia = 0, valOutro = 0, rendaLiquida = numVal;
-
-    if (type === 'renda' && userConfig) {
-        valFixo = (numVal * userConfig.pct_fixo) / 100;
-        valEmergencia = (numVal * userConfig.pct_emergencia) / 100;
-        valOutro = (numVal * userConfig.pct_outro) / 100;
-        rendaLiquida = numVal - valFixo - valEmergencia - valOutro;
-    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -204,30 +196,6 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                 // Insert all payloads
                 const { data: lancamentos, error } = await supabase.from('lancamentos').insert(payloads).select();
                 if (error) throw error;
-
-                // If Income, distribute to funds
-                if (type === 'renda' && userConfig && lancamentos && lancamentos.length > 0) {
-                    const lancamento = lancamentos[0];
-                    // Register contributions
-                    await supabase.from('contribuicoes').insert({
-                        user_id: user.id,
-                        mes: mesStr,
-                        fixo_valor: valFixo,
-                        emergencia_valor: valEmergencia,
-                        outro_valor: valOutro,
-                        lancamento_id: lancamento.id
-                    });
-
-                    // Update fundos
-                    const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user.id).single();
-                    if (f) {
-                        await supabase.from('fundos').update({
-                            fixo_saldo: parseFloat(f.fixo_saldo) + valFixo,
-                            emergencia_saldo: parseFloat(f.emergencia_saldo) + valEmergencia,
-                            outro_saldo: parseFloat(f.outro_saldo) + valOutro,
-                        }).eq('id', f.id);
-                    }
-                }
             }
 
             if (onSuccess) onSuccess();
@@ -364,29 +332,6 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                                         {fontes.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                                     </select>
                                 </div>
-
-                                {numVal > 0 && userConfig && (
-                                    <div className="mt-4 p-4 border border-brand-green/30 bg-brand-green/5 rounded-xl space-y-3">
-                                        <div className="flex items-center gap-2 text-brand-green text-sm font-bold">
-                                            ⚡ Desconto automático para Fundos
-                                        </div>
-                                        <div className="space-y-1 text-sm text-foreground/80">
-                                            {userConfig.pct_fixo > 0 && (
-                                                <div className="flex justify-between"><span>Renda Fixa ({userConfig.pct_fixo}%):</span> <span>- R$ {valFixo.toFixed(2)}</span></div>
-                                            )}
-                                            {userConfig.pct_emergencia > 0 && (
-                                                <div className="flex justify-between"><span>Emergência ({userConfig.pct_emergencia}%):</span> <span>- R$ {valEmergencia.toFixed(2)}</span></div>
-                                            )}
-                                            {userConfig.pct_outro > 0 && (
-                                                <div className="flex justify-between"><span>{userConfig.outro_nome || `3º Fundo`} ({userConfig.pct_outro}%):</span> <span>- R$ {valOutro.toFixed(2)}</span></div>
-                                            )}
-                                            <div className="pt-2 mt-2 border-t border-white/10 flex justify-between font-bold text-white">
-                                                <span>Renda Líquida na Carteira:</span>
-                                                <span className="text-brand-green">R$ {rendaLiquida.toFixed(2)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </>
                         )}
                     </form>

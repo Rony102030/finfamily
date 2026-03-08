@@ -24,8 +24,10 @@ export default function CalculadoraPage() {
         const fixo = val * ((userConfig?.pct_fixo || 0) / 100);
         const eme = val * ((userConfig?.pct_emergencia || 0) / 100);
         const out = val * ((userConfig?.pct_outro || 0) / 100);
-        const livre = val - fixo - eme - out;
-        return { fixo, eme, out, livre };
+        const out4 = val * ((userConfig?.pct_fundo4 || 0) / 100);
+        const out5 = val * ((userConfig?.pct_fundo5 || 0) / 100);
+        const livre = val - fixo - eme - out - out4 - out5;
+        return { fixo, eme, out, out4, out5, livre };
     };
 
     const calcJuros = () => {
@@ -92,26 +94,36 @@ export default function CalculadoraPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-brand-blue/10 border border-brand-blue/20 rounded-xl p-6 text-center">
-                            <Percent className="w-6 h-6 text-brand-blue mx-auto mb-2" />
-                            <p className="text-sm font-bold text-brand-blue uppercase">{userConfig?.pct_fixo}% Renda Fixa</p>
-                            <p className="text-2xl font-sans font-bold text-white mt-1">R$ {div.fixo.toFixed(2)}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        <div className="bg-brand-blue/10 border border-brand-blue/20 rounded-xl p-4 text-center flex flex-col items-center justify-center">
+                            <span className="text-xs font-bold text-brand-blue uppercase mb-1">{userConfig?.pct_fixo}% {userConfig?.fixo_nome || 'Renda Fixa'}</span>
+                            <span className="text-xl font-sans font-bold text-white">R$ {div.fixo.toFixed(2)}</span>
                         </div>
-                        <div className="bg-brand-yellow/10 border border-brand-yellow/20 rounded-xl p-6 text-center">
-                            <Percent className="w-6 h-6 text-brand-yellow mx-auto mb-2" />
-                            <p className="text-sm font-bold text-brand-yellow uppercase">{userConfig?.pct_emergencia}% Emergência</p>
-                            <p className="text-2xl font-sans font-bold text-white mt-1">R$ {div.eme.toFixed(2)}</p>
+                        <div className="bg-brand-yellow/10 border border-brand-yellow/20 rounded-xl p-4 text-center flex flex-col items-center justify-center">
+                            <span className="text-xs font-bold text-brand-yellow uppercase mb-1">{userConfig?.pct_emergencia}% {userConfig?.emergencia_nome || 'Emergência'}</span>
+                            <span className="text-xl font-sans font-bold text-white">R$ {div.eme.toFixed(2)}</span>
                         </div>
-                        <div className="bg-brand-purple/10 border border-brand-purple/20 rounded-xl p-6 text-center">
-                            <Percent className="w-6 h-6 text-brand-purple mx-auto mb-2" />
-                            <p className="text-sm font-bold text-brand-purple uppercase">{userConfig?.pct_outro}% {userConfig?.outro_nome || '3º Fundo'}</p>
-                            <p className="text-2xl font-sans font-bold text-white mt-1">R$ {div.out.toFixed(2)}</p>
-                        </div>
-                        <div className="bg-brand-green/10 border border-brand-green/20 rounded-xl p-6 text-center">
-                            <RefreshCcw className="w-6 h-6 text-brand-green mx-auto mb-2" />
-                            <p className="text-sm font-bold text-brand-green uppercase">Livre p/ Gastos</p>
-                            <p className="text-2xl font-sans font-bold text-white mt-1">R$ {div.livre.toFixed(2)}</p>
+                        {(userConfig?.pct_outro || 0) > 0 && (
+                            <div className="bg-brand-purple/10 border border-brand-purple/20 rounded-xl p-4 text-center flex flex-col items-center justify-center">
+                                <span className="text-xs font-bold text-brand-purple uppercase mb-1">{userConfig?.pct_outro}% {userConfig?.outro_nome || '3º Fundo'}</span>
+                                <span className="text-xl font-sans font-bold text-white">R$ {div.out.toFixed(2)}</span>
+                            </div>
+                        )}
+                        {(userConfig?.pct_fundo4 || 0) > 0 && (
+                            <div className="bg-brand-green/10 border border-brand-green/20 rounded-xl p-4 text-center flex flex-col items-center justify-center">
+                                <span className="text-xs font-bold text-brand-green uppercase mb-1">{userConfig?.pct_fundo4}% {userConfig?.fundo4_nome || 'Fundo 4'}</span>
+                                <span className="text-xl font-sans font-bold text-white">R$ {div.out4.toFixed(2)}</span>
+                            </div>
+                        )}
+                        {(userConfig?.pct_fundo5 || 0) > 0 && (
+                            <div className="bg-brand-red/10 border border-brand-red/20 rounded-xl p-4 text-center flex flex-col items-center justify-center">
+                                <span className="text-xs font-bold text-brand-red uppercase mb-1">{userConfig?.pct_fundo5}% {userConfig?.fundo5_nome || 'Fundo 5'}</span>
+                                <span className="text-xl font-sans font-bold text-white">R$ {div.out5.toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="bg-surface/50 border border-borders rounded-xl p-4 text-center flex flex-col items-center justify-center">
+                            <span className="text-xs font-bold text-foreground/80 uppercase mb-1">Livre p/ Gastos</span>
+                            <span className="text-xl font-sans font-bold text-brand-green">R$ {div.livre.toFixed(2)}</span>
                         </div>
                     </div>
                     <p className="text-center text-xs text-foreground/50 mt-6 bg-surface/50 border border-borders p-3 rounded-lg max-w-lg mx-auto">

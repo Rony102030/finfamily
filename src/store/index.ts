@@ -5,7 +5,13 @@ export interface UserConfig {
     pct_fixo: number;
     pct_emergencia: number;
     pct_outro: number;
+    pct_fundo4: number;
+    pct_fundo5: number;
+    fixo_nome: string | null;
+    emergencia_nome: string | null;
     outro_nome: string | null;
+    fundo4_nome: string | null;
+    fundo5_nome: string | null;
     servico_extra_nome: string | null;
     seed_done: boolean;
 }
