@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
+import { useAppStore } from "@/store";
 import { Plus, Edit2, Check, X, Wallet, Tag, Percent } from "lucide-react";
 
 interface Fundo {
@@ -14,6 +15,7 @@ interface Fundo {
 
 export function FundosTab() {
     const { user } = useAuth();
+    const { userConfig, setUserConfig } = useAppStore();
     const [config, setConfig] = useState<any>(null);
     const [fundo, setFundo] = useState<Fundo | null>(null);
     const [loading, setLoading] = useState(true);
@@ -40,6 +42,11 @@ export function FundosTab() {
             setPctEmergencia(c.pct_emergencia.toString());
             setPctOutro(c.pct_outro.toString());
             setOutroNome(c.outro_nome || "");
+
+            // Sync with global store just in case
+            if (userConfig?.pct_fixo !== c.pct_fixo || userConfig?.pct_emergencia !== c.pct_emergencia) {
+                setUserConfig(c);
+            }
         }
         if (f) setFundo(f);
         setLoading(false);
@@ -54,10 +61,14 @@ export function FundosTab() {
             outro_nome: outroNome || null
         };
 
-        const { error } = await supabase.from('config').update(updates).eq('user_id', user!.id);
+        const { error, data: updatedConfig } = await supabase.from('config').update(updates).eq('user_id', user!.id).select().single();
         if (!error) {
             // Also update fundos name if changed
             await supabase.from('fundos').update({ outro_nome: outroNome || null }).eq('user_id', user!.id);
+
+            if (updatedConfig) {
+                setUserConfig(updatedConfig);
+            }
             alert("Configuração salva com sucesso!");
         } else {
             alert("Erro ao salvar: " + error.message);
