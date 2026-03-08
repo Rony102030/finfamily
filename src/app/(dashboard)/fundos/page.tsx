@@ -203,7 +203,7 @@ export default function FundosPage() {
                     </div>
                 </div>
 
-                {(userConfig?.pct_outro || 0) > 0 && (
+                {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && (
                     <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-purple/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-purple/20"></div>
                         <div className="flex items-center gap-3 mb-4 text-brand-purple">
@@ -217,7 +217,7 @@ export default function FundosPage() {
                     </div>
                 )}
 
-                {(userConfig?.pct_fundo4 || 0) > 0 && (
+                {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && (
                     <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-green/20"></div>
                         <div className="flex items-center gap-3 mb-4 text-brand-green">
@@ -231,7 +231,7 @@ export default function FundosPage() {
                     </div>
                 )}
 
-                {(userConfig?.pct_fundo5 || 0) > 0 && (
+                {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && (
                     <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-red/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-red/20"></div>
                         <div className="flex items-center gap-3 mb-4 text-brand-red">
@@ -284,13 +284,13 @@ export default function FundosPage() {
                                 />
                                 <Area type="monotone" dataKey="Renda Fixa" stroke="#4d9fff" fillOpacity={1} fill="url(#colorFixo)" strokeWidth={2} />
                                 <Area type="monotone" dataKey="Emergência" stroke="#ffc94d" fillOpacity={1} fill="url(#colorEme)" strokeWidth={2} />
-                                {(userConfig?.pct_outro || 0) > 0 && (
+                                {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && (
                                     <Area type="monotone" dataKey="Outro" stroke="#b57bff" fillOpacity={1} fill="url(#colorOut)" strokeWidth={2} />
                                 )}
-                                {(userConfig?.pct_fundo4 || 0) > 0 && (
+                                {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && (
                                     <Area type="monotone" dataKey="Fundo4" stroke="#10b981" fillOpacity={1} fill="url(#colorOut4)" strokeWidth={2} />
                                 )}
-                                {(userConfig?.pct_fundo5 || 0) > 0 && (
+                                {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && (
                                     <Area type="monotone" dataKey="Fundo5" stroke="#ef4444" fillOpacity={1} fill="url(#colorOut5)" strokeWidth={2} />
                                 )}
                             </AreaChart>
@@ -314,9 +314,9 @@ export default function FundosPage() {
                                     <th className="pb-3 px-4 font-medium">Mês</th>
                                     <th className="pb-3 px-4 font-medium">{fundos?.fixo_nome || 'Renda Fixa'}</th>
                                     <th className="pb-3 px-4 font-medium">{fundos?.emergencia_nome || 'Emergência'}</th>
-                                    {(userConfig?.pct_outro || 0) > 0 && <th className="pb-3 px-4 font-medium">{fundos?.outro_nome || '3º Fundo'}</th>}
-                                    {(userConfig?.pct_fundo4 || 0) > 0 && <th className="pb-3 px-4 font-medium">{fundos?.fundo4_nome || 'Fundo 4'}</th>}
-                                    {(userConfig?.pct_fundo5 || 0) > 0 && <th className="pb-3 px-4 font-medium">{fundos?.fundo5_nome || 'Fundo 5'}</th>}
+                                    {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.outro_nome || '3º Fundo'}</th>}
+                                    {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.fundo4_nome || 'Fundo 4'}</th>}
+                                    {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.fundo5_nome || 'Fundo 5'}</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-borders">
@@ -325,9 +325,9 @@ export default function FundosPage() {
                                         <td className="py-4 px-4 font-semibold text-white">{h.mes}</td>
                                         <td className="py-4 px-4 text-brand-blue">+ R$ {h.fixo.toFixed(2)}</td>
                                         <td className="py-4 px-4 text-brand-yellow">+ R$ {h.emergencia.toFixed(2)}</td>
-                                        {(userConfig?.pct_outro || 0) > 0 && <td className="py-4 px-4 text-brand-purple">+ R$ {h.outro.toFixed(2)}</td>}
-                                        {(userConfig?.pct_fundo4 || 0) > 0 && <td className="py-4 px-4 text-brand-green">+ R$ {h.fundo4.toFixed(2)}</td>}
-                                        {(userConfig?.pct_fundo5 || 0) > 0 && <td className="py-4 px-4 text-brand-red">+ R$ {h.fundo5.toFixed(2)}</td>}
+                                        {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && <td className="py-4 px-4 text-brand-purple">+ R$ {h.outro.toFixed(2)}</td>}
+                                        {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && <td className="py-4 px-4 text-brand-green">+ R$ {h.fundo4.toFixed(2)}</td>}
+                                        {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && <td className="py-4 px-4 text-brand-red">+ R$ {h.fundo5.toFixed(2)}</td>}
                                     </tr>
                                 ))}
                             </tbody>
@@ -368,19 +368,19 @@ export default function FundosPage() {
                                             📊 Prévia da Distribuição
                                         </div>
                                         <div className="space-y-1 text-sm text-foreground/80">
-                                            {(userConfig?.pct_fixo || 0) > 0 && (
+                                            {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && (
                                                 <div className="flex justify-between"><span>{userConfig?.fixo_nome || 'Renda Fixa'} ({userConfig?.pct_fixo}%):</span> <span className="text-white font-medium">+ R$ {valFixo.toFixed(2)}</span></div>
                                             )}
-                                            {(userConfig?.pct_emergencia || 0) > 0 && (
+                                            {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && (
                                                 <div className="flex justify-between"><span>{userConfig?.emergencia_nome || 'Emergência'} ({userConfig?.pct_emergencia}%):</span> <span className="text-white font-medium">+ R$ {valEmergencia.toFixed(2)}</span></div>
                                             )}
-                                            {(userConfig?.pct_outro || 0) > 0 && (
+                                            {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && (
                                                 <div className="flex justify-between"><span>{userConfig?.outro_nome || `3º Fundo`} ({userConfig?.pct_outro}%):</span> <span className="text-white font-medium">+ R$ {valOutro.toFixed(2)}</span></div>
                                             )}
-                                            {(userConfig?.pct_fundo4 || 0) > 0 && (
+                                            {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && (
                                                 <div className="flex justify-between"><span>{userConfig?.fundo4_nome || `Fundo 4`} ({userConfig?.pct_fundo4}%):</span> <span className="text-white font-medium">+ R$ {valOutro4.toFixed(2)}</span></div>
                                             )}
-                                            {(userConfig?.pct_fundo5 || 0) > 0 && (
+                                            {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && (
                                                 <div className="flex justify-between"><span>{userConfig?.fundo5_nome || `Fundo 5`} ({userConfig?.pct_fundo5}%):</span> <span className="text-white font-medium">+ R$ {valOutro5.toFixed(2)}</span></div>
                                             )}
                                             <div className="pt-2 mt-2 border-t border-white/10 flex justify-between font-bold text-brand-red">

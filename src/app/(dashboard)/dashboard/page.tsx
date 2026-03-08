@@ -18,6 +18,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [showValues, setShowValues] = useState(true);
     const [txs, setTxs] = useState<any[]>([]);
+    const [monthContribs, setMonthContribs] = useState<any[]>([]);
     const [fundosTotal, setFundosTotal] = useState(0);
 
     useEffect(() => {
@@ -37,6 +38,10 @@ export default function DashboardPage() {
 
         if (lancamentos) setTxs(lancamentos);
 
+        // Load contribuicoes for the month
+        const { data: contribs } = await supabase.from('contribuicoes').select('*').eq('user_id', user!.id).eq('mes', activeMonth);
+        if (contribs) setMonthContribs(contribs);
+
         // Load total funds across all time
         const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
         if (f) {
@@ -52,6 +57,9 @@ export default function DashboardPage() {
 
     // Fund contributions for this month to calculate liquid
     let descontosFundos = 0;
+    monthContribs.forEach(c => {
+        descontosFundos += (c.fixo_valor || 0) + (c.emergencia_valor || 0) + (c.outro_valor || 0) + (c.fundo4_valor || 0) + (c.fundo5_valor || 0);
+    });
 
     const categoryTotals: Record<string, { nome: string, cor: string, valor: number, limite: number }> = {};
 
@@ -60,7 +68,7 @@ export default function DashboardPage() {
             rendaBruta += t.valor;
         } else {
             if (t.categorias && t.categorias.nome.toLowerCase() === 'fundos') {
-                descontosFundos += t.valor;
+                // Ignore explicitly since it's already counted in monthContribs
             } else {
                 despesasTotais += t.valor;
                 if (t.categorias) {

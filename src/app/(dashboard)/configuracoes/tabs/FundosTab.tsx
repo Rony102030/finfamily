@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
-import { Plus, Edit2, Check, X, Wallet, Tag, Percent } from "lucide-react";
+import { Plus, Edit2, Check, X, Wallet, Tag, Percent, Trash2 } from "lucide-react";
 
 interface Fundo {
     id: string;
@@ -172,14 +172,19 @@ export function FundosTab() {
 
                     {/* Outro */}
                     <div className="space-y-3 p-4 bg-surface rounded-xl border border-borders">
-                        <div className="flex items-center gap-2 text-brand-purple">
-                            <Wallet className="w-5 h-5 flex-shrink-0" />
-                            <input
-                                placeholder="Nome Fundo 3"
-                                value={outroNome}
-                                onChange={(e) => setOutroNome(e.target.value)}
-                                className="font-semibold bg-transparent w-full focus:outline-none text-brand-purple placeholder:text-brand-purple/50"
-                            />
+                        <div className="flex items-center justify-between text-brand-purple">
+                            <div className="flex items-center gap-2 flex-1">
+                                <Wallet className="w-5 h-5 flex-shrink-0" />
+                                <input
+                                    placeholder="Nome Fundo 3"
+                                    value={outroNome}
+                                    onChange={(e) => setOutroNome(e.target.value)}
+                                    className="font-semibold bg-transparent w-full focus:outline-none text-brand-purple placeholder:text-brand-purple/50"
+                                />
+                            </div>
+                            <button onClick={() => { setOutroNome(""); setPctOutro("0"); }} className="p-1 hover:bg-white/5 rounded-lg text-foreground/50 hover:text-brand-red transition-colors" title="Limpar Fundo" >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
                         </div>
                         <div className="relative">
                             <input
@@ -198,14 +203,19 @@ export function FundosTab() {
                     {/* Fundo 4 */}
                     {visibleFunds >= 4 && (
                         <div className="space-y-3 p-4 bg-surface rounded-xl border border-borders animate-in fade-in zoom-in duration-300">
-                            <div className="flex items-center gap-2 text-brand-green">
-                                <Wallet className="w-5 h-5 flex-shrink-0" />
-                                <input
-                                    placeholder="Nome Fundo 4"
-                                    value={fundo4Nome}
-                                    onChange={(e) => setFundo4Nome(e.target.value)}
-                                    className="font-semibold bg-transparent w-full focus:outline-none text-brand-green placeholder:text-brand-green/50"
-                                />
+                            <div className="flex items-center justify-between text-brand-green">
+                                <div className="flex items-center gap-2 flex-1">
+                                    <Wallet className="w-5 h-5 flex-shrink-0" />
+                                    <input
+                                        placeholder="Nome Fundo 4"
+                                        value={fundo4Nome}
+                                        onChange={(e) => setFundo4Nome(e.target.value)}
+                                        className="font-semibold bg-transparent w-full focus:outline-none text-brand-green placeholder:text-brand-green/50"
+                                    />
+                                </div>
+                                <button onClick={() => { setFundo4Nome(""); setPctFundo4("0"); setVisibleFunds(prev => Math.max(3, prev - 1)); }} className="p-1 hover:bg-white/5 rounded-lg text-foreground/50 hover:text-brand-red transition-colors" title="Limpar Fundo" >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                             <div className="relative">
                                 <input
@@ -225,14 +235,19 @@ export function FundosTab() {
                     {/* Fundo 5 */}
                     {visibleFunds >= 5 && (
                         <div className="space-y-3 p-4 bg-surface rounded-xl border border-borders animate-in fade-in zoom-in duration-300">
-                            <div className="flex items-center gap-2 text-brand-red">
-                                <Wallet className="w-5 h-5 flex-shrink-0" />
-                                <input
-                                    placeholder="Nome Fundo 5"
-                                    value={fundo5Nome}
-                                    onChange={(e) => setFundo5Nome(e.target.value)}
-                                    className="font-semibold bg-transparent w-full focus:outline-none text-brand-red placeholder:text-brand-red/50"
-                                />
+                            <div className="flex items-center justify-between text-brand-red">
+                                <div className="flex items-center gap-2 flex-1">
+                                    <Wallet className="w-5 h-5 flex-shrink-0" />
+                                    <input
+                                        placeholder="Nome Fundo 5"
+                                        value={fundo5Nome}
+                                        onChange={(e) => setFundo5Nome(e.target.value)}
+                                        className="font-semibold bg-transparent w-full focus:outline-none text-brand-red placeholder:text-brand-red/50"
+                                    />
+                                </div>
+                                <button onClick={() => { setFundo5Nome(""); setPctFundo5("0"); setVisibleFunds(prev => Math.max(3, prev - 1)); }} className="p-1 hover:bg-white/5 rounded-lg text-foreground/50 hover:text-brand-red transition-colors" title="Limpar Fundo" >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                             <div className="relative">
                                 <input
