@@ -21,6 +21,7 @@ export default function LancamentosPage() {
     const [subcategoriaFilter, setSubcategoriaFilter] = useState("todos");
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [transactionToEdit, setTransactionToEdit] = useState<any>(null);
 
     function formatCurrency(value: number) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -104,7 +105,10 @@ export default function LancamentosPage() {
                     </p>
                 </div>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => {
+                        setTransactionToEdit(null);
+                        setIsModalOpen(true);
+                    }}
                     className="flex items-center gap-2 bg-brand-green text-[#0f131a] px-5 py-2.5 rounded-xl font-bold hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20"
                 >
                     <Plus className="w-5 h-5" /> Novo Lançamento <span className="hidden md:inline text-[#0f131a]/60 text-xs ml-2 border border-[#0f131a]/30 rounded px-1.5 py-0.5">N</span>
@@ -204,6 +208,11 @@ export default function LancamentosPage() {
                                                     🌟 {t.fontes_renda?.nome || 'Renda'}
                                                 </span>
                                             )}
+                                            {t.parcela_atual && t.parcela_total && (
+                                                <span className="text-brand-blue ml-2 font-medium text-xs border border-brand-blue/30 rounded px-1.5 py-0.5 whitespace-nowrap">
+                                                    Parcela {t.parcela_atual}/{t.parcela_total}
+                                                </span>
+                                            )}
                                         </p>
                                     </div>
                                 </div>
@@ -225,6 +234,17 @@ export default function LancamentosPage() {
                                         </button>
 
                                         <button
+                                            onClick={() => {
+                                                setTransactionToEdit(t);
+                                                setIsModalOpen(true);
+                                            }}
+                                            className="p-2 text-foreground/40 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                            title="Editar"
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+
+                                        <button
                                             onClick={() => handleDelete(t.id, t.tipo)}
                                             className="p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors"
                                             title="Excluir"
@@ -241,8 +261,12 @@ export default function LancamentosPage() {
 
             <TransactionModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setTransactionToEdit(null);
+                }}
                 onSuccess={() => fetchTransactions()}
+                transactionToEdit={transactionToEdit}
             />
         </div>
     );

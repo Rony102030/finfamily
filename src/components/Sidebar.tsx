@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
@@ -17,13 +19,52 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
-    Briefcase
+    Briefcase,
+    Bell
 } from "lucide-react";
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
     const { signOut, user } = useAuth();
     const { activeMonth, setActiveMonth, userConfig } = useAppStore();
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [hasUnreadUpdates, setHasUnreadUpdates] = useState(false);
+
+    // Updates List
+    const LATEST_UPDATE_VERSION = "v1-2026-03-08";
+
+    useEffect(() => {
+        const readVersion = localStorage.getItem('finfamily_updates_read');
+        if (readVersion !== LATEST_UPDATE_VERSION) {
+            setHasUnreadUpdates(true);
+        }
+    }, []);
+
+    const toggleNotifications = () => {
+        const newState = !showNotifications;
+        setShowNotifications(newState);
+
+        if (newState && hasUnreadUpdates) {
+            setHasUnreadUpdates(false);
+            localStorage.setItem('finfamily_updates_read', LATEST_UPDATE_VERSION);
+        }
+    };
+
+    // Updates List
+    const latestUpdates = [
+        {
+            title: "Edição de Lançamentos",
+            desc: "Agora você pode editar qualquer lançamento feito anteriormente."
+        },
+        {
+            title: "Despesas Parceladas",
+            desc: "Nova opção de repetição para lançar parcelas automáticas."
+        },
+        {
+            title: "Relatório de Parcelas",
+            desc: "Card inteligente agrupando suas parcelas restantes no período."
+        }
+    ];
 
     const navLinks = [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -60,14 +101,49 @@ export function Sidebar({ className }: { className?: string }) {
 
     return (
         <aside className={`flex flex-col h-full bg-surface border-r border-borders w-[230px] flex-shrink-0 ${className}`}>
-            {/* Brand */}
+            {/* Brand and Notifications */}
             <div className="p-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-brand-green/20 flex items-center justify-center">
-                        <Wallet className="w-5 h-5 text-brand-green" />
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-brand-green/20 flex items-center justify-center">
+                            <Wallet className="w-5 h-5 text-brand-green" />
+                        </div>
+                        <div>
+                            <h1 className="font-heading font-bold text-xl text-white">FinFamily</h1>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="font-heading font-bold text-xl text-white">FinFamily</h1>
+
+                    <div className="relative">
+                        <button
+                            onClick={toggleNotifications}
+                            className="p-1.5 rounded-lg text-foreground/50 hover:text-white hover:bg-white/5 transition-colors relative"
+                            title="Novidades"
+                        >
+                            <Bell className="w-5 h-5" />
+                            {hasUnreadUpdates && (
+                                <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-brand-green"></span>
+                            )}
+                        </button>
+
+                        {showNotifications && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
+                                <div className="absolute top-full left-0 md:left-full md:top-0 mt-2 md:mt-0 md:ml-4 w-[280px] bg-cards border border-borders rounded-xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-borders/50">
+                                        <Bell className="w-4 h-4 text-brand-green" />
+                                        <h3 className="font-bold text-white text-sm">Novidades de Hoje</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {latestUpdates.map((update, i) => (
+                                            <div key={i}>
+                                                <p className="font-bold text-xs text-brand-green">{update.title}</p>
+                                                <p className="text-xs text-foreground/70 mt-0.5 leading-relaxed">{update.desc}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

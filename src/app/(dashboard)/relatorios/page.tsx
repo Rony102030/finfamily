@@ -69,6 +69,9 @@ export default function RelatoriosPage() {
         return acc;
     }, {})).sort((a: any, b: any) => b.valor - a.valor);
 
+    // Process Data: Parcelas Restantes
+    const parceladasRestantes = lancamentosFiltrados.filter(t => t.parcela_total != null && t.parcela_atual != null);
+
     const handlePrint = () => {
         window.print();
     };
@@ -225,6 +228,51 @@ export default function RelatoriosPage() {
                     )}
                 </div>
             </div>
+
+            {/* Parcelas Restantes Section */}
+            {parceladasRestantes.length > 0 && (
+                <div className="bg-cards border border-borders rounded-2xl p-6 mt-6">
+                    <h3 className="font-heading font-bold text-white mb-6 text-lg">Despesas Parceladas no Período</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.values(parceladasRestantes.reduce((acc: any, t: any) => {
+                            const key = `${t.descricao}_${t.valor}_${t.parcela_total}`;
+                            if (!acc[key] || t.parcela_atual < acc[key].parcela_atual) {
+                                acc[key] = t;
+                            }
+                            return acc;
+                        }, {})).map((t: any) => {
+                            const restantes = t.parcela_total - t.parcela_atual;
+                            return (
+                                <div key={t.id} className="bg-surface border border-brand-blue/30 rounded-xl p-4 flex flex-col justify-between hover:border-brand-blue transition-colors">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <p className="font-bold text-white text-sm">{t.descricao.replace(/\s\(\d+\/\d+\)$/, '')}</p>
+                                            <p className="text-xs text-foreground/50 mt-0.5">{t.categorias?.nome || 'Sem Categoria'}</p>
+                                        </div>
+                                        <p className="font-sans font-bold text-brand-red">{formatCurrency(t.valor)}</p>
+                                    </div>
+                                    <div className="pt-3 border-t border-borders/50 flex justify-between items-center mt-2">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-xs bg-brand-blue/20 text-brand-blue px-2 py-0.5 rounded font-bold">
+                                                Parcela {t.parcela_atual}/{t.parcela_total}
+                                            </span>
+                                        </div>
+                                        {restantes > 0 ? (
+                                            <span className="text-xs font-medium text-foreground/60">
+                                                Restam {restantes}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs font-bold text-brand-green">
+                                                Última parcela!
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Print Styles included inline for simplicity */}
             <style jsx global>{`

@@ -10,9 +10,10 @@ interface TransactionModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    transactionToEdit?: any;
 }
 
-export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit }: TransactionModalProps) {
     const { user } = useAuth();
     const { userConfig } = useAppStore();
 
@@ -37,16 +38,45 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
     const [status, setStatus] = useState<'pago' | 'pendente'>('pago');
     const [recorrente, setRecorrente] = useState(false);
 
+    // Installments / Repetition
+    const [tipoRepeticao, setTipoRepeticao] = useState<'unica' | 'parcelada' | 'fixa'>('unica');
+    const [quantidadeParcelas, setQuantidadeParcelas] = useState(2);
+
     // Renda fields
     const [fonteId, setFonteId] = useState("");
 
     useEffect(() => {
         if (isOpen && user) {
-            loadSupportData();
-        } else {
-            resetForm();
+            loadSupportData().then(() => {
+                if (transactionToEdit) {
+                    setType(transactionToEdit.tipo);
+                    setDescricao(transactionToEdit.descricao);
+                    setValor(transactionToEdit.valor.toString());
+                    setDataStr(transactionToEdit.data);
+                    if (transactionToEdit.carteira_id) setCarteiraId(transactionToEdit.carteira_id);
+                    if (transactionToEdit.status) setStatus(transactionToEdit.status);
+
+                    if (transactionToEdit.tipo === 'despesa') {
+                        if (transactionToEdit.categoria_id) setCategoriaId(transactionToEdit.categoria_id);
+                        if (transactionToEdit.subcategoria_id) setSubcategoriaId(transactionToEdit.subcategoria_id);
+                        setRecorrente(transactionToEdit.recorrente);
+                        if (transactionToEdit.parcela_total) {
+                            setTipoRepeticao('parcelada');
+                            setQuantidadeParcelas(transactionToEdit.parcela_total);
+                        } else if (transactionToEdit.recorrente) {
+                            setTipoRepeticao('fixa');
+                        } else {
+                            setTipoRepeticao('unica');
+                        }
+                    } else if (transactionToEdit.tipo === 'renda') {
+                        if (transactionToEdit.fonte_renda_id) setFonteId(transactionToEdit.fonte_renda_id);
+                    }
+                } else {
+                    resetForm();
+                }
+            });
         }
-    }, [isOpen, user]);
+    }, [isOpen, user, transactionToEdit]);
 
     const loadSupportData = async () => {
         // Run unawaited to speed up
@@ -72,7 +102,11 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
         setValor("");
         setStatus("pago");
         setRecorrente(false);
+        setTipoRepeticao('unica');
+        setQuantidadeParcelas(2);
         setSubcategoriaId("");
+        setDataStr(new Date().toISOString().split('T')[0]);
+        setType('despesa');
     };
 
     useEffect(() => {
@@ -97,49 +131,102 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
         if (!user) return;
         setSaving(true);
 
-        // Extract mes from dataStr
-        const mes = dataStr.substring(0, 7); // YYYY-MM
+        const mesStr = dataStr.substring(0, 7); // YYYY-MM
+        const [year, month, day] = dataStr.split('-');
 
         try {
-            const payload = {
-                user_id: user.id,
-                mes,
-                tipo: type,
-                descricao,
-                valor: numVal,
-                data: dataStr,
-                carteira_id: carteiraId || null,
-                status,
-                recorrente: type === 'despesa' ? recorrente : false,
-                categoria_id: type === 'despesa' ? (categoriaId || null) : null,
-                subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
-                fonte_renda_id: type === 'renda' ? (fonteId || null) : null
-            };
+            if (transactionToEdit) {
+                // UPDATE flow
+                const payload = {
+                    tipo: type,
+                    descricao,
+                    valor: numVal,
+                    data: dataStr,
+                    mes: mesStr,
+                    carteira_id: carteiraId || null,
+                    status,
+                    recorrente: type === 'despesa' ? (tipoRepeticao === 'fixa') : false,
+                    categoria_id: type === 'despesa' ? (categoriaId || null) : null,
+                    subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
+                    fonte_renda_id: type === 'renda' ? (fonteId || null) : null
+                };
+                const { error } = await supabase.from('lancamentos').update(payload).eq('id', transactionToEdit.id);
+                if (error) throw error;
+                // Income distribution updates are skipped on edit for simplicity and to avoid duplicated subtraction logic.
+            } else {
+                // INSERT flow
+                const isParcelado = type === 'despesa' && tipoRepeticao === 'parcelada';
+                const repeatCount = isParcelado ? quantidadeParcelas : 1;
 
-            const { data: lancamento, error } = await supabase.from('lancamentos').insert(payload).select().single();
-            if (error) throw error;
-
-            // If Income, distribute to funds
-            if (type === 'renda' && userConfig) {
-                // Register contributions
-                await supabase.from('contribuicoes').insert({
+                const basePayload = {
                     user_id: user.id,
-                    mes,
-                    fixo_valor: valFixo,
-                    emergencia_valor: valEmergencia,
-                    outro_valor: valOutro,
-                    lancamento_id: lancamento.id
-                });
+                    tipo: type,
+                    descricao,
+                    valor: numVal,
+                    carteira_id: carteiraId || null,
+                    status,
+                    recorrente: type === 'despesa' ? (tipoRepeticao === 'fixa') : false,
+                    categoria_id: type === 'despesa' ? (categoriaId || null) : null,
+                    subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
+                    fonte_renda_id: type === 'renda' ? (fonteId || null) : null
+                };
 
-                // Update fundos
-                // using an RPC would be ideal for concurrency, but we can read/write for now
-                const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user.id).single();
-                if (f) {
-                    await supabase.from('fundos').update({
-                        fixo_saldo: parseFloat(f.fixo_saldo) + valFixo,
-                        emergencia_saldo: parseFloat(f.emergencia_saldo) + valEmergencia,
-                        outro_saldo: parseFloat(f.outro_saldo) + valOutro,
-                    }).eq('id', f.id);
+                let payloads = [];
+                for (let i = 0; i < repeatCount; i++) {
+                    const targetYear = parseInt(year);
+                    const targetMonthIndex = parseInt(month) - 1 + i;
+
+                    // Create date at day 1 to find the max days of that specific month
+                    let dDate = new Date(targetYear, targetMonthIndex, 1);
+                    const maxDaysInMonth = new Date(dDate.getFullYear(), dDate.getMonth() + 1, 0).getDate();
+
+                    // Clamp the day so it doesn't overflow to the next month
+                    const finalDay = Math.min(parseInt(day), maxDaysInMonth);
+                    dDate = new Date(targetYear, targetMonthIndex, finalDay);
+
+                    const dY = dDate.getFullYear();
+                    const dM = (dDate.getMonth() + 1).toString().padStart(2, '0');
+                    const dD = dDate.getDate().toString().padStart(2, '0');
+                    const currentMes = `${dY}-${dM}`;
+                    const currentData = `${dY}-${dM}-${dD}`;
+
+                    payloads.push({
+                        ...basePayload,
+                        mes: currentMes,
+                        data: currentData,
+                        status: i === 0 ? status : 'pendente', // Future installments are pending initially
+                        parcela_atual: isParcelado ? i + 1 : null,
+                        parcela_total: isParcelado ? quantidadeParcelas : null,
+                        descricao: descricao,
+                    });
+                }
+
+                // Insert all payloads
+                const { data: lancamentos, error } = await supabase.from('lancamentos').insert(payloads).select();
+                if (error) throw error;
+
+                // If Income, distribute to funds
+                if (type === 'renda' && userConfig && lancamentos && lancamentos.length > 0) {
+                    const lancamento = lancamentos[0];
+                    // Register contributions
+                    await supabase.from('contribuicoes').insert({
+                        user_id: user.id,
+                        mes: mesStr,
+                        fixo_valor: valFixo,
+                        emergencia_valor: valEmergencia,
+                        outro_valor: valOutro,
+                        lancamento_id: lancamento.id
+                    });
+
+                    // Update fundos
+                    const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user.id).single();
+                    if (f) {
+                        await supabase.from('fundos').update({
+                            fixo_saldo: parseFloat(f.fixo_saldo) + valFixo,
+                            emergencia_saldo: parseFloat(f.emergencia_saldo) + valEmergencia,
+                            outro_saldo: parseFloat(f.outro_saldo) + valOutro,
+                        }).eq('id', f.id);
+                    }
                 }
             }
 
@@ -159,7 +246,9 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-cards border border-borders rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between p-6 border-b border-borders">
-                    <h2 className="text-xl font-heading font-bold text-white">Novo Lançamento</h2>
+                    <h2 className="text-xl font-heading font-bold text-white">
+                        {transactionToEdit ? 'Editar Lançamento' : 'Novo Lançamento'}
+                    </h2>
                     <button onClick={onClose} className="p-2 text-foreground/50 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
@@ -227,14 +316,40 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
                                     )}
                                 </div>
 
-                                <div className="flex gap-6 mt-4 pt-4 border-t border-borders">
+                                <div className="border border-borders rounded-xl p-4 mt-4 bg-surface/30">
+                                    <label className="text-sm font-medium text-foreground/80 mb-3 block">Repetição</label>
+                                    <div className="grid grid-cols-3 gap-2 mb-4">
+                                        <button type="button" onClick={() => setTipoRepeticao('unica')} className={`py-2 px-3 text-xs font-bold rounded-lg transition-colors border ${tipoRepeticao === 'unica' ? 'bg-brand-blue/20 border-brand-blue text-white' : 'border-borders text-foreground/60 hover:text-white hover:bg-white/5'}`}>
+                                            Única
+                                        </button>
+                                        <button type="button" onClick={() => setTipoRepeticao('parcelada')} disabled={!!transactionToEdit} className={`py-2 px-3 text-xs font-bold rounded-lg transition-colors border ${tipoRepeticao === 'parcelada' ? 'bg-brand-blue/20 border-brand-blue text-white' : 'border-borders text-foreground/60 hover:text-white hover:bg-white/5'} disabled:opacity-50 disabled:cursor-not-allowed`} title={transactionToEdit ? "Não é possível parcelar numa edição" : ""}>
+                                            Parcelada
+                                        </button>
+                                        <button type="button" onClick={() => setTipoRepeticao('fixa')} className={`py-2 px-3 text-xs font-bold rounded-lg transition-colors border ${tipoRepeticao === 'fixa' ? 'bg-brand-blue/20 border-brand-blue text-white' : 'border-borders text-foreground/60 hover:text-white hover:bg-white/5'}`}>
+                                            Fixa
+                                        </button>
+                                    </div>
+
+                                    {tipoRepeticao === 'parcelada' && !transactionToEdit && (
+                                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <label className="text-sm font-medium text-foreground/80 mb-1.5 block">Quantidade de Parcelas</label>
+                                            <input type="number" min="2" max="360" value={quantidadeParcelas} onChange={e => setQuantidadeParcelas(parseInt(e.target.value) || 2)} className="w-full bg-background border border-borders rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-blue" />
+                                            <p className="text-xs text-foreground/50 mt-2">
+                                                Dica: o sistema irá lançar os meses seguintes automaticamente com o status pendente. O valor informado deve ser o da parcela.
+                                            </p>
+                                        </div>
+                                    )}
+                                    {tipoRepeticao === 'fixa' && (
+                                        <p className="text-xs text-foreground/50 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            Essa despesa será listada na aba &quot;Contas Recorrentes&quot; para lançamento fácil nos próximos meses.
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="flex mt-4 pt-4 border-t border-borders">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={status === 'pago'} onChange={e => setStatus(e.target.checked ? 'pago' : 'pendente')} className="accent-brand-green w-4 h-4" />
-                                        <span className="text-sm text-foreground/90">Já foi pago?</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={recorrente} onChange={e => setRecorrente(e.target.checked)} className="accent-brand-green w-4 h-4" />
-                                        <span className="text-sm text-foreground/90">Repete todo mês</span>
+                                        <span className="text-sm text-foreground/90">A parcela atual já foi paga?</span>
                                     </label>
                                 </div>
                             </>
@@ -284,7 +399,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
                         disabled={saving}
                         className={`w-full py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all ${type === 'despesa' ? 'bg-brand-red text-white hover:bg-brand-red/90' : 'bg-brand-green text-[#0f131a] hover:bg-brand-green/90'} disabled:opacity-50`}
                     >
-                        {saving ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div> : 'Salvar Lançamento'}
+                        {saving ? <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div> : (transactionToEdit ? 'Atualizar Lançamento' : 'Salvar Lançamento')}
                     </button>
                 </div>
             </div>

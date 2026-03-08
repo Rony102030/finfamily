@@ -24,9 +24,15 @@ export default function LoginPage() {
                 if (error) throw error;
                 router.push("/dashboard");
             } else {
-                const { error } = await supabase.auth.signUp({ email, password });
+                const { error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        emailRedirectTo: `${window.location.origin}/dashboard`
+                    }
+                });
                 if (error) throw error;
-                setMsg({ text: "Verifique seu email para confirmar o cadastro!", type: "success" });
+                router.push("/dashboard");
             }
         } catch (error: any) {
             setMsg({ text: error.message || "Ocorreu um erro", type: "error" });
