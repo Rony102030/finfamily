@@ -9,7 +9,7 @@ import { useAppStore } from "@/store";
 
 export default function FundosPage() {
     const { user } = useAuth();
-    const { userConfig } = useAppStore();
+    const { userConfig, activeMonth } = useAppStore();
     const [fundos, setFundos] = useState<any>(null);
     const [history, setHistory] = useState<any[]>([]);
     const [chartData, setChartData] = useState<any[]>([]);
@@ -17,13 +17,12 @@ export default function FundosPage() {
 
     const [carteiras, setCarteiras] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [baseValue, setBaseValue] = useState("");
-    const [selectedCarteira, setSelectedCarteira] = useState("");
     const [saving, setSaving] = useState(false);
+    const [rendaBrutaMes, setRendaBrutaMes] = useState(0);
 
     useEffect(() => {
-        if (user) fetchData();
-    }, [user]);
+        if (user && activeMonth) fetchData();
+    }, [user, activeMonth]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -31,12 +30,19 @@ export default function FundosPage() {
         const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
         if (f) setFundos(f);
 
-        // Load Carteiras
-        const { data: c } = await supabase.from('carteiras').select('*').eq('user_id', user!.id);
-        if (c) {
-            setCarteiras(c);
-            if (c.length > 0 && !selectedCarteira) setSelectedCarteira(c[0].id);
+        // Calculate total income for the activeMonth
+        const { data: lancamentos } = await supabase
+            .from('lancamentos')
+            .select('valor, tipo, mes')
+            .eq('user_id', user!.id)
+            .eq('tipo', 'renda')
+            .eq('mes', activeMonth);
+
+        let sumRenda = 0;
+        if (lancamentos) {
+            lancamentos.forEach(l => sumRenda += l.valor);
         }
+        setRendaBrutaMes(sumRenda);
 
         // Load contribution history
         const { data: h } = await supabase.from('contribuicoes').select('mes, fixo_valor, emergencia_valor, outro_valor, fundo4_valor, fundo5_valor').eq('user_id', user!.id).order('mes', { ascending: true });
@@ -85,61 +91,60 @@ export default function FundosPage() {
 
     const totalAcumulado = (fundos?.fixo_saldo || 0) + (fundos?.emergencia_saldo || 0) + (fundos?.outro_saldo || 0) + (fundos?.fundo4_saldo || 0) + (fundos?.fundo5_saldo || 0);
 
-    const numVal = parseFloat(baseValue.replace(',', '.')) || 0;
-    const valFixo = (numVal * (userConfig?.pct_fixo || 0)) / 100;
-    const valEmergencia = (numVal * (userConfig?.pct_emergencia || 0)) / 100;
-    const valOutro = (numVal * (userConfig?.pct_outro || 0)) / 100;
-    const valOutro4 = (numVal * (userConfig?.pct_fundo4 || 0)) / 100;
-    const valOutro5 = (numVal * (userConfig?.pct_fundo5 || 0)) / 100;
+    const valFixo = (rendaBrutaMes * (userConfig?.pct_fixo || 0)) / 100;
+    const valEmergencia = (rendaBrutaMes * (userConfig?.pct_emergencia || 0)) / 100;
+    const valOutro = (rendaBrutaMes * (userConfig?.pct_outro || 0)) / 100;
+    const valOutro4 = (rendaBrutaMes * (userConfig?.pct_fundo4 || 0)) / 100;
+    const valOutro5 = (rendaBrutaMes * (userConfig?.pct_fundo5 || 0)) / 100;
     const totalDist = valFixo + valEmergencia + valOutro + valOutro4 + valOutro5;
 
     const handleRegistrar = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         try {
-            const { data: cat } = await supabase.from('categorias').select('id').ilike('nome', 'Fundos').eq('user_id', user!.id).maybeSingle();
+            // Check if contribution already exists for this month to replace it, or update differences to `fundos` overall balance
+            const { data: existingContrib } = await supabase.from('contribuicoes').select('*').eq('user_id', user!.id).eq('mes', activeMonth).maybeSingle();
 
-            const now = new Date();
-            const yyyy = now.getFullYear();
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const dd = String(now.getDate()).padStart(2, '0');
-            const dataStr = `${yyyy}-${mm}-${dd}`;
-            const mesStr = `${yyyy}-${mm}`;
+            const oldFixo = existingContrib?.fixo_valor || 0;
+            const oldEmerg = existingContrib?.emergencia_valor || 0;
+            const oldOutro = existingContrib?.outro_valor || 0;
+            const old4 = existingContrib?.fundo4_valor || 0;
+            const old5 = existingContrib?.fundo5_valor || 0;
 
-            const { data: lanc, error: errL } = await supabase.from('lancamentos').insert({
-                user_id: user!.id,
-                tipo: 'despesa',
-                descricao: 'Distribuição para Fundos',
-                valor: totalDist,
-                data: dataStr,
-                mes: mesStr,
-                carteira_id: selectedCarteira,
-                status: 'pago',
-                categoria_id: cat ? cat.id : null,
-                recorrente: false
-            }).select().single();
+            const diffFixo = valFixo - oldFixo;
+            const diffEmerg = valEmergencia - oldEmerg;
+            const diffOutro = valOutro - oldOutro;
+            const diff4 = valOutro4 - old4;
+            const diff5 = valOutro5 - old5;
 
-            if (errL) throw errL;
-
-            await supabase.from('contribuicoes').insert({
-                user_id: user!.id,
-                mes: mesStr,
-                fixo_valor: valFixo,
-                emergencia_valor: valEmergencia,
-                outro_valor: valOutro,
-                fundo4_valor: valOutro4,
-                fundo5_valor: valOutro5,
-                lancamento_id: lanc.id
-            });
+            if (existingContrib) {
+                await supabase.from('contribuicoes').update({
+                    fixo_valor: valFixo,
+                    emergencia_valor: valEmergencia,
+                    outro_valor: valOutro,
+                    fundo4_valor: valOutro4,
+                    fundo5_valor: valOutro5,
+                }).eq('id', existingContrib.id);
+            } else {
+                await supabase.from('contribuicoes').insert({
+                    user_id: user!.id,
+                    mes: activeMonth,
+                    fixo_valor: valFixo,
+                    emergencia_valor: valEmergencia,
+                    outro_valor: valOutro,
+                    fundo4_valor: valOutro4,
+                    fundo5_valor: valOutro5,
+                });
+            }
 
             const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
             if (f) {
                 await supabase.from('fundos').update({
-                    fixo_saldo: parseFloat(f.fixo_saldo || "0") + valFixo,
-                    emergencia_saldo: parseFloat(f.emergencia_saldo || "0") + valEmergencia,
-                    outro_saldo: parseFloat(f.outro_saldo || "0") + valOutro,
-                    fundo4_saldo: parseFloat(f.fundo4_saldo || "0") + valOutro4,
-                    fundo5_saldo: parseFloat(f.fundo5_saldo || "0") + valOutro5,
+                    fixo_saldo: parseFloat(f.fixo_saldo || "0") + diffFixo,
+                    emergencia_saldo: parseFloat(f.emergencia_saldo || "0") + diffEmerg,
+                    outro_saldo: parseFloat(f.outro_saldo || "0") + diffOutro,
+                    fundo4_saldo: parseFloat(f.fundo4_saldo || "0") + diff4,
+                    fundo5_saldo: parseFloat(f.fundo5_saldo || "0") + diff5,
                 }).eq('id', f.id);
             }
 
@@ -155,7 +160,7 @@ export default function FundosPage() {
     };
 
     const handleRefundFund = async (fundKey: string, fundName: string) => {
-        if (!confirm(`Deseja excluir/estornar todos os valores do fundo "${fundName}" e zerá-lo? Os valores retornarão para suas respectivas contas de origem no extrato.`)) return;
+        if (!confirm(`Deseja zerar todo o histórico do fundo "${fundName}"? Os valores serão descontados do saldo total deste fundo.`)) return;
 
         setSaving(true);
         try {
@@ -163,9 +168,7 @@ export default function FundosPage() {
                 .from('contribuicoes')
                 .select(`
                     id, 
-                    ${fundKey}_valor,
-                    lancamento_id,
-                    lancamentos ( carteira_id )
+                    ${fundKey}_valor
                 `)
                 .eq('user_id', user!.id)
                 .gt(`${fundKey}_valor`, 0);
@@ -173,40 +176,6 @@ export default function FundosPage() {
             if (errC) throw errC;
 
             if (contribs && contribs.length > 0) {
-                // Return to original wallets
-                const refundMap: Record<string, number> = {};
-                for (const c of contribs) {
-                    const lanc = Array.isArray(c.lancamentos) ? c.lancamentos[0] : c.lancamentos;
-                    const carteiraId = lanc?.carteira_id;
-                    if (carteiraId) {
-                        if (!refundMap[carteiraId]) refundMap[carteiraId] = 0;
-                        refundMap[carteiraId] += Number(c[`${fundKey}_valor`]);
-                    }
-                }
-
-                const now = new Date();
-                const yyyy = now.getFullYear();
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mesStr = `${yyyy}-${mm}`;
-
-                const rendasToInsert = Object.keys(refundMap).map(cId => ({
-                    user_id: user!.id,
-                    tipo: 'renda',
-                    descricao: `Estorno do Fundo: ${fundName}`,
-                    valor: refundMap[cId],
-                    data: `${yyyy}-${mm}-${dd}`,
-                    mes: mesStr,
-                    carteira_id: cId,
-                    status: 'pago',
-                    recorrente: false
-                }));
-
-                if (rendasToInsert.length > 0) {
-                    const { error: errI } = await supabase.from('lancamentos').insert(rendasToInsert);
-                    if (errI) throw errI;
-                }
-
                 // Zero out this specific fund in all history
                 const contribIds = contribs.map((c: any) => c.id);
                 // Supabase in() max size is usually around 1000-2000, which is enough for now
@@ -449,18 +418,16 @@ export default function FundosPage() {
                         </div>
                         <div className="p-6">
                             <form onSubmit={handleRegistrar} className="space-y-4">
+                                <p className="text-foreground/80 mb-4 bg-white/5 p-4 rounded-xl border border-white/10 text-sm">
+                                    Será utilizado seu <strong>Total de Receitas (Renda Bruta)</strong> de <strong>{activeMonth}</strong> para calcular os valores com base nas suas porcentagens, sem criar lançamentos adicionais. O valor será deduzido apenas na aba Dashboard (no seu "Líquido p/ Gastos").
+                                </p>
+
                                 <div>
-                                    <label className="text-sm font-medium text-foreground/80 mb-1.5 block">Carteira / Conta (Debitar)</label>
-                                    <select required value={selectedCarteira} onChange={e => setSelectedCarteira(e.target.value)} className="w-full bg-surface border border-borders rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-green [&>option]:bg-surface [&>option]:text-white">
-                                        {carteiras.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium text-foreground/80 mb-1.5 block">Valor Bruto para Distribuir (R$)</label>
-                                    <input required type="number" step="0.01" min="0.01" value={baseValue} onChange={e => setBaseValue(e.target.value)} placeholder="Ex: 5000.00" autoFocus className="w-full bg-background border border-borders rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-green" />
+                                    <label className="text-sm font-medium text-foreground/80 mb-1.5 block">Renda Bruta apurada em {activeMonth}</label>
+                                    <input type="text" readOnly value={`R$ ${rendaBrutaMes.toFixed(2)}`} className="w-full bg-background border border-borders rounded-lg px-4 py-2.5 text-white opacity-80 cursor-not-allowed" />
                                 </div>
 
-                                {numVal > 0 && (
+                                {rendaBrutaMes > 0 && (
                                     <div className="mt-4 p-4 border border-brand-green/30 bg-brand-green/5 rounded-xl space-y-3">
                                         <div className="flex items-center gap-2 text-brand-green text-sm font-bold">
                                             📊 Prévia da Distribuição
@@ -490,7 +457,7 @@ export default function FundosPage() {
                                 )}
 
                                 <div className="pt-4 flex justify-end">
-                                    <button disabled={saving || numVal <= 0} type="submit" className="bg-brand-green text-background px-6 py-2.5 rounded-lg font-bold hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 disabled:opacity-50">
+                                    <button disabled={saving || rendaBrutaMes <= 0} type="submit" className="bg-brand-green text-background px-6 py-2.5 rounded-lg font-bold hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 disabled:opacity-50">
                                         {saving ? "Registrando..." : "Confirmar"}
                                     </button>
                                 </div>
