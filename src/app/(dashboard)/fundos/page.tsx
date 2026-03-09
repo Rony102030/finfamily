@@ -149,7 +149,6 @@ export default function FundosPage() {
             }
 
             setIsModalOpen(false);
-            setBaseValue("");
             fetchData();
         } catch (err) {
             console.error(err);
