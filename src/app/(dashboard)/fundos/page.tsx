@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
-import { PiggyBank, ArrowUpRight, ShieldCheck, Wallet, TrendingUp, PlusCircle, X } from "lucide-react";
+import { PiggyBank, ArrowUpRight, ShieldCheck, Wallet, TrendingUp, PlusCircle, X, Trash2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useAppStore } from "@/store";
 
@@ -154,6 +154,89 @@ export default function FundosPage() {
         }
     };
 
+    const handleRefundFund = async (fundKey: string, fundName: string) => {
+        if (!confirm(`Deseja excluir/estornar todos os valores do fundo "${fundName}" e zerá-lo? Os valores retornarão para suas respectivas contas de origem no extrato.`)) return;
+
+        setSaving(true);
+        try {
+            const { data: contribs, error: errC } = await supabase
+                .from('contribuicoes')
+                .select(`
+                    id, 
+                    ${fundKey}_valor,
+                    lancamento_id,
+                    lancamentos ( carteira_id )
+                `)
+                .eq('user_id', user!.id)
+                .gt(`${fundKey}_valor`, 0);
+
+            if (errC) throw errC;
+
+            if (contribs && contribs.length > 0) {
+                // Return to original wallets
+                const refundMap: Record<string, number> = {};
+                for (const c of contribs) {
+                    const lanc = Array.isArray(c.lancamentos) ? c.lancamentos[0] : c.lancamentos;
+                    const carteiraId = lanc?.carteira_id;
+                    if (carteiraId) {
+                        if (!refundMap[carteiraId]) refundMap[carteiraId] = 0;
+                        refundMap[carteiraId] += Number(c[`${fundKey}_valor`]);
+                    }
+                }
+
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mesStr = `${yyyy}-${mm}`;
+
+                const rendasToInsert = Object.keys(refundMap).map(cId => ({
+                    user_id: user!.id,
+                    tipo: 'renda',
+                    descricao: `Estorno do Fundo: ${fundName}`,
+                    valor: refundMap[cId],
+                    data: `${yyyy}-${mm}-${dd}`,
+                    mes: mesStr,
+                    carteira_id: cId,
+                    status: 'pago',
+                    recorrente: false
+                }));
+
+                if (rendasToInsert.length > 0) {
+                    const { error: errI } = await supabase.from('lancamentos').insert(rendasToInsert);
+                    if (errI) throw errI;
+                }
+
+                // Zero out this specific fund in all history
+                const contribIds = contribs.map((c: any) => c.id);
+                // Supabase in() max size is usually around 1000-2000, which is enough for now
+                const { error: errU } = await supabase
+                    .from('contribuicoes')
+                    .update({ [`${fundKey}_valor`]: 0 })
+                    .in('id', contribIds);
+                if (errU) throw errU;
+            }
+
+            // Reset balance in fundos table
+            const { data: f } = await supabase.from('fundos').select('id').eq('user_id', user!.id).single();
+            if (f) {
+                const { error: errF } = await supabase
+                    .from('fundos')
+                    .update({ [`${fundKey}_saldo`]: 0 })
+                    .eq('id', f.id);
+                if (errF) throw errF;
+            }
+
+            alert(`Fundo ${fundName} estornado com sucesso!`);
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao estornar fundo.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <header className="pb-6 border-b border-borders flex items-center justify-between">
@@ -181,7 +264,10 @@ export default function FundosPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-blue/20"></div>
-                    <div className="flex items-center gap-3 mb-4 text-brand-blue">
+                    <button onClick={() => handleRefundFund('fixo', fundos?.fixo_nome || 'Renda Fixa')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="flex items-center gap-3 mb-4 text-brand-blue relative z-0">
                         <TrendingUp className="w-5 h-5" />
                         <span className="font-semibold">Renda Fixa</span>
                     </div>
@@ -193,7 +279,10 @@ export default function FundosPage() {
 
                 <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-yellow/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-yellow/20"></div>
-                    <div className="flex items-center gap-3 mb-4 text-brand-yellow">
+                    <button onClick={() => handleRefundFund('emergencia', fundos?.emergencia_nome || 'Emergência')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="flex items-center gap-3 mb-4 text-brand-yellow relative z-0">
                         <ShieldCheck className="w-5 h-5" />
                         <span className="font-semibold">Emergência</span>
                     </div>
@@ -206,7 +295,10 @@ export default function FundosPage() {
                 {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && (
                     <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-purple/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-purple/20"></div>
-                        <div className="flex items-center gap-3 mb-4 text-brand-purple">
+                        <button onClick={() => handleRefundFund('outro', fundos?.outro_nome || '3º Fundo')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                        <div className="flex items-center gap-3 mb-4 text-brand-purple relative z-0">
                             <Wallet className="w-5 h-5" />
                             <span className="font-semibold">{fundos?.outro_nome || '3º Fundo'}</span>
                         </div>
@@ -220,7 +312,10 @@ export default function FundosPage() {
                 {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && (
                     <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-green/20"></div>
-                        <div className="flex items-center gap-3 mb-4 text-brand-green">
+                        <button onClick={() => handleRefundFund('fundo4', fundos?.fundo4_nome || 'Fundo 4')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                        <div className="flex items-center gap-3 mb-4 text-brand-green relative z-0">
                             <Wallet className="w-5 h-5" />
                             <span className="font-semibold">{fundos?.fundo4_nome || 'Fundo 4'}</span>
                         </div>
@@ -234,7 +329,10 @@ export default function FundosPage() {
                 {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && (
                     <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-red/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-red/20"></div>
-                        <div className="flex items-center gap-3 mb-4 text-brand-red">
+                        <button onClick={() => handleRefundFund('fundo5', fundos?.fundo5_nome || 'Fundo 5')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                        <div className="flex items-center gap-3 mb-4 text-brand-red relative z-0">
                             <Wallet className="w-5 h-5" />
                             <span className="font-semibold">{fundos?.fundo5_nome || 'Fundo 5'}</span>
                         </div>
