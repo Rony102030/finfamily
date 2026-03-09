@@ -25,6 +25,8 @@ export default function MetasPage() {
     const [prazo, setPrazo] = useState("");
 
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [addingValueId, setAddingValueId] = useState<string | null>(null);
+    const [valorAdicional, setValorAdicional] = useState("");
 
     useEffect(() => {
         if (user) fetchMetas();
@@ -77,6 +79,16 @@ export default function MetasPage() {
         await supabase.from('metas').update(updates).eq('id', id);
         setMetas(metas.map(m => m.id === id ? { ...m, ...updates } : m));
         setEditingId(null);
+    };
+
+    const handleAddValue = async (id: string, currentVal: number) => {
+        const val = parseFloat(valorAdicional);
+        if (isNaN(val) || val <= 0) return;
+        const novoValor = currentVal + val;
+        await supabase.from('metas').update({ valor_atual: novoValor }).eq('id', id);
+        setMetas(metas.map(m => m.id === id ? { ...m, valor_atual: novoValor } : m));
+        setAddingValueId(null);
+        setValorAdicional("");
     };
 
     return (
@@ -191,13 +203,56 @@ export default function MetasPage() {
                                 </div>
 
                                 {!isDone && (
-                                    <div className="bg-background rounded-xl p-4 border border-borders flex items-center justify-between">
-                                        <div>
-                                            <p className="text-xs text-foreground/50 uppercase font-bold tracking-wider mb-1">Para alcançar no prazo:</p>
-                                            <p className="font-heading font-bold text-brand-blue">
-                                                Economizar <span className="text-white text-lg">R$ {perMonth.toFixed(2)}</span> /mês
-                                            </p>
+                                    <div className="bg-background rounded-xl p-4 border border-borders flex flex-col gap-3">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-xs text-foreground/50 uppercase font-bold tracking-wider mb-1">Para alcançar no prazo:</p>
+                                                <p className="font-heading font-bold text-brand-blue">
+                                                    Economizar <span className="text-white text-lg">R$ {perMonth.toFixed(2)}</span> /mês
+                                                </p>
+                                            </div>
+                                            {addingValueId !== meta.id && (
+                                                <button
+                                                    onClick={() => setAddingValueId(meta.id)}
+                                                    className="px-3 py-1.5 bg-brand-green/10 text-brand-green hover:bg-brand-green/20 rounded-lg flex items-center justify-center gap-1 text-sm font-bold transition-colors"
+                                                    title="Adicionar valor guardado"
+                                                >
+                                                    <Plus className="w-4 h-4" />
+                                                    Adicionar
+                                                </button>
+                                            )}
                                         </div>
+
+                                        {addingValueId === meta.id && (
+                                            <div className="flex items-center gap-2 mt-2 pt-3 border-t border-borders animate-in fade-in zoom-in duration-200">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={valorAdicional}
+                                                    onChange={e => setValorAdicional(e.target.value)}
+                                                    placeholder="Valor (R$)"
+                                                    className="flex-1 bg-surface border border-borders rounded-lg px-3 py-2 text-sm text-white focus:border-brand-green transition-colors outline-none"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={() => handleAddValue(meta.id, meta.valor_atual)}
+                                                    className="p-2 bg-brand-green text-background hover:bg-brand-green/90 rounded-lg flex items-center justify-center font-bold"
+                                                    title="Confirmar"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setAddingValueId(null);
+                                                        setValorAdicional("");
+                                                    }}
+                                                    className="p-2 bg-brand-red/10 text-brand-red hover:bg-brand-red/20 rounded-lg flex items-center justify-center"
+                                                    title="Cancelar"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
