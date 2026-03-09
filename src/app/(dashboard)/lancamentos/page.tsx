@@ -53,12 +53,12 @@ export default function LancamentosPage() {
         setLoading(false);
     };
 
-    const handleDelete = async (id: string, tipo: string) => {
-        if (!confirm("Tem certeza que deseja excluir?")) return;
+    const handleDelete = async (t: any) => {
+        if (!confirm("Tem certeza que deseja excluir? Se for uma compra parcelada, TODAS as parcelas vinculadas serão excluídas!")) return;
 
         // Se for renda, precisamos reverter também as contribuições
-        if (tipo === 'renda') {
-            const { data: contrib } = await supabase.from('contribuicoes').select('*').eq('lancamento_id', id).single();
+        if (t.tipo === 'renda') {
+            const { data: contrib } = await supabase.from('contribuicoes').select('*').eq('lancamento_id', t.id).single();
             if (contrib) {
                 const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
                 if (f) {
@@ -71,7 +71,18 @@ export default function LancamentosPage() {
             }
         }
 
-        await supabase.from('lancamentos').delete().eq('id', id);
+        if (t.group_id) {
+            await supabase.from('lancamentos').delete().eq('group_id', t.group_id);
+        } else if (t.parcela_total > 1) {
+            // Delete legacy installments (without group_id) that share the same description, total installments and value
+            await supabase.from('lancamentos').delete()
+                .eq('descricao', t.descricao)
+                .eq('parcela_total', t.parcela_total)
+                .eq('valor', t.valor);
+        } else {
+            await supabase.from('lancamentos').delete().eq('id', t.id);
+        }
+
         fetchTransactions();
     };
 
@@ -245,7 +256,7 @@ export default function LancamentosPage() {
                                         </button>
 
                                         <button
-                                            onClick={() => handleDelete(t.id, t.tipo)}
+                                            onClick={() => handleDelete(t)}
                                             className="p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors"
                                             title="Excluir"
                                         >

@@ -129,35 +129,79 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
         try {
             if (transactionToEdit) {
                 // UPDATE flow
-                const payload = {
-                    tipo: type,
-                    descricao,
-                    valor: numVal,
-                    data: dataStr,
-                    mes: mesStr,
-                    carteira_id: carteiraId || null,
-                    status,
-                    recorrente: type === 'despesa' ? (tipoRepeticao === 'fixa') : false,
-                    categoria_id: type === 'despesa' ? (categoriaId || null) : null,
-                    subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
-                    fonte_renda_id: type === 'renda' ? (fonteId || null) : null
-                };
-                const { error } = await supabase.from('lancamentos').update(payload).eq('id', transactionToEdit.id);
-                if (error) throw error;
-                // Income distribution updates are skipped on edit for simplicity and to avoid duplicated subtraction logic.
+                if (transactionToEdit.group_id) {
+                    // Atualiza todas as parcelas do grupo
+                    const { data: groupItems, error: fetchErr } = await supabase
+                        .from('lancamentos')
+                        .select('*')
+                        .eq('group_id', transactionToEdit.group_id);
+
+                    if (fetchErr) throw fetchErr;
+
+                    if (groupItems && groupItems.length > 0) {
+                        const updates = groupItems.map(item => {
+                            const [newYear, newMonth, newDay] = dataStr.split('-');
+                            const [oldYear, oldMonth] = item.data.split('-');
+
+                            let dDate = new Date(parseInt(oldYear), parseInt(oldMonth) - 1, 1);
+                            const maxDaysInMonth = new Date(dDate.getFullYear(), dDate.getMonth() + 1, 0).getDate();
+                            const finalDay = Math.min(parseInt(newDay), maxDaysInMonth).toString().padStart(2, '0');
+
+                            const newDataStr = `${oldYear}-${oldMonth}-${finalDay}`;
+
+                            return {
+                                ...item,
+                                tipo: type,
+                                descricao,
+                                valor: numVal,
+                                data: newDataStr,
+                                carteira_id: carteiraId || null,
+                                status: item.id === transactionToEdit.id ? status : item.status,
+                                recorrente: type === 'despesa' ? (tipoRepeticao === 'fixa') : false,
+                                categoria_id: type === 'despesa' ? (categoriaId || null) : null,
+                                subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
+                                fonte_renda_id: type === 'renda' ? (fonteId || null) : null
+                            };
+                        });
+
+                        const { error: upsertErr } = await supabase.from('lancamentos').upsert(updates);
+                        if (upsertErr) throw upsertErr;
+                    }
+                } else {
+                    const payload = {
+                        tipo: type,
+                        descricao,
+                        valor: numVal,
+                        data: dataStr,
+                        mes: mesStr,
+                        carteira_id: carteiraId || null,
+                        status,
+                        recorrente: type === 'despesa' ? (tipoRepeticao === 'fixa') : false,
+                        categoria_id: type === 'despesa' ? (categoriaId || null) : null,
+                        subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
+                        fonte_renda_id: type === 'renda' ? (fonteId || null) : null
+                    };
+                    const { error } = await supabase.from('lancamentos').update(payload).eq('id', transactionToEdit.id);
+                    if (error) throw error;
+                }
             } else {
                 // INSERT flow
                 const isParcelado = type === 'despesa' && tipoRepeticao === 'parcelada';
+                const isFixa = type === 'despesa' && tipoRepeticao === 'fixa';
                 const repeatCount = isParcelado ? quantidadeParcelas : 1;
+
+                // Gera group_id se for parcelado ou fixo (para possibilitar atualização em lote depois se for parcelado)
+                const groupId = isParcelado ? crypto.randomUUID() : null;
 
                 const basePayload = {
                     user_id: user.id,
                     tipo: type,
                     descricao,
+                    group_id: groupId,
                     valor: numVal,
                     carteira_id: carteiraId || null,
                     status,
-                    recorrente: type === 'despesa' ? (tipoRepeticao === 'fixa') : false,
+                    recorrente: isFixa,
                     categoria_id: type === 'despesa' ? (categoriaId || null) : null,
                     subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
                     fonte_renda_id: type === 'renda' ? (fonteId || null) : null
@@ -168,11 +212,9 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                     const targetYear = parseInt(year);
                     const targetMonthIndex = parseInt(month) - 1 + i;
 
-                    // Create date at day 1 to find the max days of that specific month
                     let dDate = new Date(targetYear, targetMonthIndex, 1);
                     const maxDaysInMonth = new Date(dDate.getFullYear(), dDate.getMonth() + 1, 0).getDate();
 
-                    // Clamp the day so it doesn't overflow to the next month
                     const finalDay = Math.min(parseInt(day), maxDaysInMonth);
                     dDate = new Date(targetYear, targetMonthIndex, finalDay);
 
@@ -186,15 +228,14 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                         ...basePayload,
                         mes: currentMes,
                         data: currentData,
-                        status: i === 0 ? status : 'pendente', // Future installments are pending initially
+                        status: i === 0 ? status : 'pendente',
                         parcela_atual: isParcelado ? i + 1 : null,
                         parcela_total: isParcelado ? quantidadeParcelas : null,
                         descricao: descricao,
                     });
                 }
 
-                // Insert all payloads
-                const { data: lancamentos, error } = await supabase.from('lancamentos').insert(payloads).select();
+                const { error } = await supabase.from('lancamentos').insert(payloads);
                 if (error) throw error;
             }
 

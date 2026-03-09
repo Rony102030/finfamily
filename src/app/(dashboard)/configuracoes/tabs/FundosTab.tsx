@@ -109,6 +109,30 @@ export function FundosTab() {
         setSaving(false);
     };
 
+    const handleDeleteFundTransactions = async () => {
+        if (!confirm("Tem certeza que deseja excluir TODOS os lançamentos (antigos e futuros) relacionados a Fundos? Esta ação não pode ser desfeita e afetará seu extrato.")) return;
+
+        setSaving(true);
+        const { data: cats } = await supabase
+            .from('categorias')
+            .select('id')
+            .eq('user_id', user!.id)
+            .ilike('nome', 'Fundos');
+
+        if (cats && cats.length > 0) {
+            const catIds = cats.map((c: any) => c.id);
+            const { error } = await supabase.from('lancamentos').delete().in('categoria_id', catIds);
+            if (!error) {
+                alert("Lançamentos de fundos excluídos com sucesso!");
+            } else {
+                alert("Erro ao excluir: " + error.message);
+            }
+        } else {
+            alert("Categoria 'Fundos' não tem nenhum lançamento ou não foi encontrada.");
+        }
+        setSaving(false);
+    };
+
     if (loading) return <div className="animate-pulse flex space-y-4 flex-col"><div className="h-10 bg-surface rounded"></div></div>;
 
     return (
@@ -288,13 +312,22 @@ export function FundosTab() {
                                     💡 <strong>Lembrete:</strong> Ao alterar a porcentagem dos fundos, a modificação passa a valer para os próximos lançamentos. Lançamentos feitos no passado não terão as transferências para os fundos alteradas.
                                 </div>
                             </div>
-                            <button
-                                onClick={saveConfig}
-                                disabled={saving || totalPct > 100}
-                                className="bg-brand-green text-background px-6 py-2 rounded-lg font-bold hover:bg-brand-green/90 transition-all disabled:opacity-50 whitespace-nowrap"
-                            >
-                                {saving ? "Salvando..." : "Salvar Configurações"}
-                            </button>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button
+                                    onClick={handleDeleteFundTransactions}
+                                    disabled={saving}
+                                    className="bg-brand-red/10 text-brand-red px-6 py-2 rounded-lg font-bold hover:bg-brand-red hover:text-white border border-brand-red/20 transition-all disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
+                                >
+                                    <Trash2 className="w-4 h-4" /> Excluir Lançamentos de Fundos
+                                </button>
+                                <button
+                                    onClick={saveConfig}
+                                    disabled={saving || totalPct > 100}
+                                    className="bg-brand-green text-background px-6 py-2 rounded-lg font-bold hover:bg-brand-green/90 transition-all disabled:opacity-50 whitespace-nowrap"
+                                >
+                                    {saving ? "Salvando..." : "Salvar Configurações"}
+                                </button>
+                            </div>
                         </div>
                     );
                 })()}
