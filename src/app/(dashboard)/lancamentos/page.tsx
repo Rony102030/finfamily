@@ -19,6 +19,7 @@ export default function LancamentosPage() {
     const [statusFilter, setStatusFilter] = useState("todos");
     const [categoriaFilter, setCategoriaFilter] = useState("todos");
     const [subcategoriaFilter, setSubcategoriaFilter] = useState("todos");
+    const [carteiraFilter, setCarteiraFilter] = useState("todos");
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [transactionToEdit, setTransactionToEdit] = useState<any>(null);
@@ -98,11 +99,13 @@ export default function LancamentosPage() {
         const matchStatus = statusFilter === 'todos' || t.status === statusFilter;
         const matchCat = categoriaFilter === 'todos' || t.categorias?.nome === categoriaFilter;
         const matchSub = subcategoriaFilter === 'todos' || t.subcategorias?.nome === subcategoriaFilter;
-        return matchSearch && matchTipo && matchStatus && matchCat && matchSub;
+        const matchCarteira = carteiraFilter === 'todos' || t.carteiras?.nome === carteiraFilter;
+        return matchSearch && matchTipo && matchStatus && matchCat && matchSub && matchCarteira;
     });
 
     const availableCategorias = Array.from(new Set(transactions.filter(t => t.tipo === 'despesa' && t.categorias).map(t => t.categorias.nome)));
     const availableSubcategorias = Array.from(new Set(transactions.filter(t => t.tipo === 'despesa' && t.subcategorias && (categoriaFilter === 'todos' || t.categorias?.nome === categoriaFilter)).map(t => t.subcategorias.nome)));
+    const availableCarteiras = Array.from(new Set(transactions.map(t => t.carteiras?.nome).filter(Boolean)));
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -156,6 +159,16 @@ export default function LancamentosPage() {
                         <option value="pago">Pagos/Recebidos</option>
                         <option value="pendente">Pendentes</option>
                     </select>
+                    {availableCarteiras.length > 0 && (
+                        <select
+                            value={carteiraFilter}
+                            onChange={(e) => setCarteiraFilter(e.target.value)}
+                            className="bg-background border border-borders rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-green transition-all min-w-[140px]"
+                        >
+                            <option value="todos">Todas Carteiras/Bancos</option>
+                            {availableCarteiras.map((c: any) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    )}
                     {tipoFilter !== 'renda' && availableCategorias.length > 0 && (
                         <select
                             value={categoriaFilter}
