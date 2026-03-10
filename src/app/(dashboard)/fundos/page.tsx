@@ -201,10 +201,8 @@ export default function FundosPage() {
                     [`pct_${fundKey}`]: 0
                 };
 
-                // For 'outro', 'fundo4', 'fundo5', clear the name so it completely disappears
-                if (['outro', 'fundo4', 'fundo5'].includes(fundKey)) {
-                    updatePayload[`${fundKey}_nome`] = null;
-                }
+                // Clear the name so it completely disappears from the UI
+                updatePayload[`${fundKey}_nome`] = null;
 
                 await supabase.from('configuracoes').update(updatePayload).eq('id', conf.id);
             }
@@ -293,35 +291,39 @@ export default function FundosPage() {
 
             {/* Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-blue/20"></div>
-                    <button onClick={() => handleRefundFund('fixo', fundos?.fixo_nome || 'Renda Fixa')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                    <div className="flex items-center gap-3 mb-4 text-brand-blue relative z-0">
-                        <TrendingUp className="w-5 h-5" />
-                        <span className="font-semibold">Renda Fixa</span>
+                {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && (
+                    <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-blue/20"></div>
+                        <button onClick={() => handleRefundFund('fixo', fundos?.fixo_nome || 'Renda Fixa')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                        <div className="flex items-center gap-3 mb-4 text-brand-blue relative z-0">
+                            <TrendingUp className="w-5 h-5" />
+                            <span className="font-semibold">{fundos?.fixo_nome || 'Renda Fixa'}</span>
+                        </div>
+                        <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.fixo_saldo.toFixed(2)}</p>
+                        <div className="flex items-center gap-2 text-sm text-brand-blue">
+                            <span className="bg-brand-blue/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_fixo}% de cada renda</span>
+                        </div>
                     </div>
-                    <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.fixo_saldo.toFixed(2)}</p>
-                    <div className="flex items-center gap-2 text-sm text-brand-blue">
-                        <span className="bg-brand-blue/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_fixo}% de cada renda</span>
-                    </div>
-                </div>
+                )}
 
-                <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-yellow/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-yellow/20"></div>
-                    <button onClick={() => handleRefundFund('emergencia', fundos?.emergencia_nome || 'Emergência')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                    <div className="flex items-center gap-3 mb-4 text-brand-yellow relative z-0">
-                        <ShieldCheck className="w-5 h-5" />
-                        <span className="font-semibold">Emergência</span>
+                {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && (
+                    <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-yellow/10 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-brand-yellow/20"></div>
+                        <button onClick={() => handleRefundFund('emergencia', fundos?.emergencia_nome || 'Emergência')} className="absolute top-4 right-4 p-2 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors z-10" title="Excluir e Estornar Fundo">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                        <div className="flex items-center gap-3 mb-4 text-brand-yellow relative z-0">
+                            <ShieldCheck className="w-5 h-5" />
+                            <span className="font-semibold">{fundos?.emergencia_nome || 'Emergência'}</span>
+                        </div>
+                        <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.emergencia_saldo.toFixed(2)}</p>
+                        <div className="flex items-center gap-2 text-sm text-brand-yellow">
+                            <span className="bg-brand-yellow/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_emergencia}% de cada renda</span>
+                        </div>
                     </div>
-                    <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.emergencia_saldo.toFixed(2)}</p>
-                    <div className="flex items-center gap-2 text-sm text-brand-yellow">
-                        <span className="bg-brand-yellow/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_emergencia}% de cada renda</span>
-                    </div>
-                </div>
+                )}
 
                 {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && (
                     <div className="bg-cards border border-borders rounded-2xl p-6 relative overflow-hidden group">
@@ -411,8 +413,12 @@ export default function FundosPage() {
                                     contentStyle={{ backgroundColor: '#161b27', borderColor: '#232b3e', borderRadius: '12px', color: '#fff' }}
                                     itemStyle={{ color: '#e2e8f0', fontSize: '14px' }}
                                 />
-                                <Area type="monotone" dataKey="Renda Fixa" stroke="#4d9fff" fillOpacity={1} fill="url(#colorFixo)" strokeWidth={2} />
-                                <Area type="monotone" dataKey="Emergência" stroke="#ffc94d" fillOpacity={1} fill="url(#colorEme)" strokeWidth={2} />
+                                {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && (
+                                    <Area type="monotone" dataKey="Renda Fixa" stroke="#4d9fff" fillOpacity={1} fill="url(#colorFixo)" strokeWidth={2} />
+                                )}
+                                {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && (
+                                    <Area type="monotone" dataKey="Emergência" stroke="#ffc94d" fillOpacity={1} fill="url(#colorEme)" strokeWidth={2} />
+                                )}
                                 {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && (
                                     <Area type="monotone" dataKey="Outro" stroke="#b57bff" fillOpacity={1} fill="url(#colorOut)" strokeWidth={2} />
                                 )}
@@ -441,8 +447,8 @@ export default function FundosPage() {
                             <thead>
                                 <tr className="text-foreground/50 border-b border-borders">
                                     <th className="pb-3 px-4 font-medium">Mês</th>
-                                    <th className="pb-3 px-4 font-medium">{fundos?.fixo_nome || 'Renda Fixa'}</th>
-                                    <th className="pb-3 px-4 font-medium">{fundos?.emergencia_nome || 'Emergência'}</th>
+                                    {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.fixo_nome || 'Renda Fixa'}</th>}
+                                    {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.emergencia_nome || 'Emergência'}</th>}
                                     {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.outro_nome || '3º Fundo'}</th>}
                                     {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.fundo4_nome || 'Fundo 4'}</th>}
                                     {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.fundo5_nome || 'Fundo 5'}</th>}
@@ -453,8 +459,8 @@ export default function FundosPage() {
                                 {history.map(h => (
                                     <tr key={h.mes} className="hover:bg-white/[0.02]">
                                         <td className="py-4 px-4 font-semibold text-white">{h.mes}</td>
-                                        <td className="py-4 px-4 text-brand-blue">+ R$ {h.fixo.toFixed(2)}</td>
-                                        <td className="py-4 px-4 text-brand-yellow">+ R$ {h.emergencia.toFixed(2)}</td>
+                                        {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && <td className="py-4 px-4 text-brand-blue">+ R$ {h.fixo.toFixed(2)}</td>}
+                                        {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && <td className="py-4 px-4 text-brand-yellow">+ R$ {h.emergencia.toFixed(2)}</td>}
                                         {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && <td className="py-4 px-4 text-brand-purple">+ R$ {h.outro.toFixed(2)}</td>}
                                         {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && <td className="py-4 px-4 text-brand-green">+ R$ {h.fundo4.toFixed(2)}</td>}
                                         {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && <td className="py-4 px-4 text-brand-red">+ R$ {h.fundo5.toFixed(2)}</td>}
