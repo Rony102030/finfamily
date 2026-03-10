@@ -159,7 +159,7 @@ export default function FundosPage() {
     };
 
     const handleRefundFund = async (fundKey: string, fundName: string) => {
-        if (!confirm(`Deseja zerar todo o histórico do fundo "${fundName}"? Os valores serão descontados do saldo total deste fundo.`)) return;
+        if (!confirm(`Deseja APAGAR POR COMPLETO o fundo "${fundName}"? Isso zerará o saldo e removerá o fundo da lista.`)) return;
 
         setSaving(true);
         try {
@@ -177,7 +177,6 @@ export default function FundosPage() {
             if (contribs && contribs.length > 0) {
                 // Zero out this specific fund in all history
                 const contribIds = contribs.map((c: any) => c.id);
-                // Supabase in() max size is usually around 1000-2000, which is enough for now
                 const { error: errU } = await supabase
                     .from('contribuicoes')
                     .update({ [`${fundKey}_valor`]: 0 })
@@ -195,11 +194,75 @@ export default function FundosPage() {
                 if (errF) throw errF;
             }
 
-            alert(`Fundo ${fundName} estornado com sucesso!`);
-            fetchData();
+            // Remove name and percentage from configuracoes to "hide/delete" the fund
+            const { data: conf } = await supabase.from('configuracoes').select('id').eq('user_id', user!.id).single();
+            if (conf) {
+                const updatePayload: any = {
+                    [`pct_${fundKey}`]: 0
+                };
+
+                // For 'outro', 'fundo4', 'fundo5', clear the name so it completely disappears
+                if (['outro', 'fundo4', 'fundo5'].includes(fundKey)) {
+                    updatePayload[`${fundKey}_nome`] = null;
+                }
+
+                await supabase.from('configuracoes').update(updatePayload).eq('id', conf.id);
+            }
+
+            // Note: We don't magically update userConfig here because it's managed by store,
+            // we will just reload the page to refresh all states properly or let the user know they might need to refresh.
+            // Since useAppStore fetches on app load, window.location.reload() is the safest UX here to reset the global store.
+
+            alert(`Fundo ${fundName} apagado com sucesso! A página será recarregada para aplicar as alterações.`);
+            window.location.reload();
         } catch (err) {
             console.error(err);
             alert("Erro ao estornar fundo.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteMonth = async (mes: string) => {
+        if (!confirm(`Deseja apagar o registro do mês ${mes}? O valor total será estornado dos saldos dos fundos.`)) return;
+        setSaving(true);
+        try {
+            // Find the contribution for this month
+            const { data: c } = await supabase
+                .from('contribuicoes')
+                .select('*')
+                .eq('user_id', user!.id)
+                .eq('mes', mes)
+                .single();
+
+            if (!c) {
+                alert("Registro não encontrado.");
+                setSaving(false);
+                return;
+            }
+
+            // Find current fundos balance
+            const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
+
+            if (f) {
+                // Subtract the values that were added in this month
+                await supabase.from('fundos').update({
+                    fixo_saldo: Math.max(0, parseFloat(f.fixo_saldo || "0") - (c.fixo_valor || 0)),
+                    emergencia_saldo: Math.max(0, parseFloat(f.emergencia_saldo || "0") - (c.emergencia_valor || 0)),
+                    outro_saldo: Math.max(0, parseFloat(f.outro_saldo || "0") - (c.outro_valor || 0)),
+                    fundo4_saldo: Math.max(0, parseFloat(f.fundo4_saldo || "0") - (c.fundo4_valor || 0)),
+                    fundo5_saldo: Math.max(0, parseFloat(f.fundo5_saldo || "0") - (c.fundo5_valor || 0)),
+                }).eq('id', f.id);
+            }
+
+            // Delete the contribution record
+            await supabase.from('contribuicoes').delete().eq('id', c.id);
+
+            alert(`Registro de ${mes} apagado com sucesso!`);
+            fetchData();
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao apagar registro do mês.");
         } finally {
             setSaving(false);
         }
@@ -383,6 +446,7 @@ export default function FundosPage() {
                                     {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.outro_nome || '3º Fundo'}</th>}
                                     {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.fundo4_nome || 'Fundo 4'}</th>}
                                     {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && <th className="pb-3 px-4 font-medium">{fundos?.fundo5_nome || 'Fundo 5'}</th>}
+                                    <th className="pb-3 px-4 font-medium text-right">Ação</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-borders">
@@ -394,6 +458,16 @@ export default function FundosPage() {
                                         {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && <td className="py-4 px-4 text-brand-purple">+ R$ {h.outro.toFixed(2)}</td>}
                                         {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && <td className="py-4 px-4 text-brand-green">+ R$ {h.fundo4.toFixed(2)}</td>}
                                         {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && <td className="py-4 px-4 text-brand-red">+ R$ {h.fundo5.toFixed(2)}</td>}
+                                        <td className="py-4 px-4 text-right">
+                                            <button
+                                                onClick={() => handleDeleteMonth(h.mes)}
+                                                className="p-1.5 text-foreground/40 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors"
+                                                title={`Apagar registro de ${h.mes}`}
+                                                disabled={saving}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
