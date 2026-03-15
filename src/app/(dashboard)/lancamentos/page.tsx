@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
-import { Plus, Search, Filter, Trash2, Edit2, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Plus, Search, Filter, Trash2, Edit2, ArrowDownCircle, ArrowUpCircle, Calendar } from "lucide-react";
 import { TransactionModal } from "@/components/TransactionModal";
 
 export default function LancamentosPage() {
@@ -20,12 +20,19 @@ export default function LancamentosPage() {
     const [categoriaFilter, setCategoriaFilter] = useState("todos");
     const [subcategoriaFilter, setSubcategoriaFilter] = useState("todos");
     const [carteiraFilter, setCarteiraFilter] = useState("todos");
+    const [dataFilter, setDataFilter] = useState("");
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [transactionToEdit, setTransactionToEdit] = useState<any>(null);
 
     function formatCurrency(value: number) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    }
+
+    function formatDate(dateString: string) {
+        if (!dateString) return "";
+        const [year, month, day] = dateString.substring(0, 10).split('-');
+        return `${day}/${month}/${year}`;
     }
 
     useEffect(() => {
@@ -100,7 +107,8 @@ export default function LancamentosPage() {
         const matchCat = categoriaFilter === 'todos' || t.categorias?.nome === categoriaFilter;
         const matchSub = subcategoriaFilter === 'todos' || t.subcategorias?.nome === subcategoriaFilter;
         const matchCarteira = carteiraFilter === 'todos' || t.carteiras?.nome === carteiraFilter;
-        return matchSearch && matchTipo && matchStatus && matchCat && matchSub && matchCarteira;
+        const matchData = !dataFilter || (t.data && t.data.startsWith(dataFilter));
+        return matchSearch && matchTipo && matchStatus && matchCat && matchSub && matchCarteira && matchData;
     });
 
     const availableCategorias = Array.from(new Set(transactions.filter(t => t.tipo === 'despesa' && t.categorias).map(t => t.categorias.nome)));
@@ -131,7 +139,7 @@ export default function LancamentosPage() {
 
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 p-4 bg-surface rounded-2xl border border-borders">
-                <div className="flex-1 relative">
+                <div className="flex-1 min-w-[200px] relative">
                     <Search className="absolute left-3 top-2.5 w-5 h-5 text-foreground/40" />
                     <input
                         placeholder="Buscar por descrição..."
@@ -141,6 +149,23 @@ export default function LancamentosPage() {
                     />
                 </div>
                 <div className="flex flex-wrap gap-4">
+                    <div className="relative">
+                        <input
+                            type="date"
+                            value={dataFilter}
+                            onChange={(e) => setDataFilter(e.target.value)}
+                            className="bg-background border border-borders rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-green transition-all min-w-[140px] [&::-webkit-calendar-picker-indicator]:invert cursor-pointer"
+                            title="Filtrar por data"
+                        />
+                        {dataFilter && (
+                            <button 
+                                onClick={() => setDataFilter('')}
+                                className="absolute right-10 top-3 text-[10px] font-bold bg-brand-red/20 text-brand-red rounded px-1.5 py-0.5 hover:bg-brand-red/30 transition-colors"
+                            >
+                                X
+                            </button>
+                        )}
+                    </div>
                     <select
                         value={tipoFilter}
                         onChange={(e) => setTipoFilter(e.target.value)}
@@ -216,7 +241,13 @@ export default function LancamentosPage() {
                                         {t.tipo === 'renda' ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
                                     </div>
                                     <div className="flex-1 min-w-[180px]">
-                                        <p className="font-semibold text-white truncate">{t.descricao}</p>
+                                        <div className="flex items-center gap-2.5 mb-0.5">
+                                            <p className="font-semibold text-white truncate">{t.descricao}</p>
+                                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-white/[0.03] text-foreground/50 border border-white/10 flex items-center gap-1">
+                                                <Calendar className="w-3 h-3 text-foreground/40" />
+                                                {formatDate(t.data)}
+                                            </span>
+                                        </div>
                                         <p className="text-sm text-foreground/60 flex items-center gap-2 mt-0.5">
                                             {t.tipo === 'despesa' && t.categorias ? (
                                                 <span className="flex items-center gap-1 group relative cursor-default">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { Wallet, Eye, EyeOff, ArrowLeft } from "lucide-react";
@@ -14,6 +14,26 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState({ text: "", type: "" });
     const router = useRouter();
+
+    // Check for error messages from Supabase in the URL (e.g., expired token)
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.location.hash) {
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const errorDescription = hashParams.get("error_description");
+            if (errorDescription) {
+                // Formatting common Supabase errors to Portuguese
+                let errorMessage = decodeURIComponent(errorDescription).replace(/\+/g, " ");
+                if (errorMessage.includes("Email link is invalid or has expired")) {
+                    errorMessage = "O link de recuperação é inválido ou expirou. Por favor, solicite um novo.";
+                    setIsResetMode(true);
+                }
+                setMsg({ text: errorMessage, type: "error" });
+                
+                // Limpa o hash da URL para não mostrar o erro novamente num refresh
+                window.history.replaceState(null, "", window.location.pathname);
+            }
+        }
+    }, []);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();

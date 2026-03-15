@@ -5,7 +5,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { SeedManager } from "@/components/SeedManager";
 import { GlobalShortcuts } from "@/components/GlobalShortcuts";
 import { Wallet, Menu } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
     children,
@@ -13,6 +14,17 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        // Redireciona o fluxo de redefinição de senha caso o Supabase mande para cá por padrão
+        if (window.location.hash.includes("type=recovery")) {
+            router.replace(`/update-password${window.location.hash}`);
+        } else if (window.location.hash.includes("error_description=")) {
+            // Manda para o login com o erro na URL se o token expirou
+            router.replace(`/login${window.location.hash}`);
+        }
+    }, [router]);
 
     return (
         <ProtectRoute>

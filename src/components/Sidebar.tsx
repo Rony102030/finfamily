@@ -31,7 +31,7 @@ export function Sidebar({ className }: { className?: string }) {
     const [hasUnreadUpdates, setHasUnreadUpdates] = useState(false);
 
     // Updates List
-    const LATEST_UPDATE_VERSION = "v2-2026-03-08";
+    const LATEST_UPDATE_VERSION = "v3-2026-03-15";
 
     useEffect(() => {
         const readVersion = localStorage.getItem('finfamily_updates_read');
@@ -53,16 +53,16 @@ export function Sidebar({ className }: { className?: string }) {
     // Updates List
     const latestUpdates = [
         {
-            title: "Lançamento Manual de Fundos",
-            desc: "As porcentagens de fundos não são mais retiradas automaticamente da Renda. Agora você deve lançar uma Despesa com a Categoria 'Fundos'."
+            title: "Filtro de Data nos Lançamentos",
+            desc: "Adicionamos um novo filtro por data exata na tela de Lançamentos."
         },
         {
-            title: "Novos Fundos 4 e 5",
-            desc: "Você agora pode configurar e nomear dinamicamente até 5 fundos separados na aba Configurações."
+            title: "Data Visível na Listagem",
+            desc: "Agora você pode visualizar facilmente a data de cada lançamento de forma elegante ao lado do nome."
         },
         {
-            title: "Nova Categoria Base",
-            desc: "A categoria 'Fundos' e subcategorias 'Renda Fixa' e 'Emergência' foram adicionadas automaticamente."
+            title: "Recuperação de Senha Corrigida",
+            desc: "Resolvemos um problema onde links expirados de recuperação de senha redirecionavam para uma tela vazia."
         }
     ];
 
