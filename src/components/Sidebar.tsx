@@ -128,7 +128,7 @@ export function Sidebar({ className }: { className?: string }) {
                         {showNotifications && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-                                <div className="absolute top-full left-0 md:left-full md:top-0 mt-2 md:mt-0 md:ml-4 w-[280px] bg-cards border border-borders rounded-xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
+                                <div className="absolute top-full right-0 md:left-full md:right-auto md:top-0 mt-2 md:mt-0 md:ml-4 w-[260px] md:w-[280px] bg-cards border border-borders rounded-xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center gap-2 mb-3 pb-2 border-b border-borders/50">
                                         <Bell className="w-4 h-4 text-brand-green" />
                                         <h3 className="font-bold text-white text-sm">Novidades de Hoje</h3>
