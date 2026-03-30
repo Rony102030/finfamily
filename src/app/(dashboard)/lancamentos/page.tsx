@@ -155,13 +155,13 @@ export default function LancamentosPage() {
                         Gerencie suas receitas e despesas de <span className="text-brand-green font-medium">{activeMonth}</span>
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex bg-surface border border-borders rounded-xl overflow-hidden divide-x divide-borders">
-                        <div className="px-4 py-2 flex flex-col justify-center min-w-[120px]">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto mt-4 lg:mt-0">
+                    <div className="flex-1 flex bg-surface border border-borders rounded-xl overflow-hidden divide-x divide-borders">
+                        <div className="flex-1 px-4 py-2 flex flex-col justify-center text-center sm:text-left min-w-[120px]">
                             <span className="text-[10px] uppercase font-bold text-brand-green/80">Receitas</span>
                             <span className="text-brand-green font-bold text-sm">{formatCurrency(filterRendas)}</span>
                         </div>
-                        <div className="px-4 py-2 flex flex-col justify-center min-w-[120px]">
+                        <div className="flex-1 px-4 py-2 flex flex-col justify-center text-center sm:text-left min-w-[120px]">
                             <span className="text-[10px] uppercase font-bold text-brand-red/80">Despesas</span>
                             <span className="text-brand-red font-bold text-sm">{formatCurrency(filterDespesas)}</span>
                         </div>
@@ -171,7 +171,7 @@ export default function LancamentosPage() {
                             setTransactionToEdit(null);
                             setIsModalOpen(true);
                         }}
-                        className="flex items-center gap-2 bg-brand-green text-[#0f131a] px-5 py-2.5 rounded-xl font-bold hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20"
+                        className="flex items-center justify-center gap-2 bg-brand-green text-[#0f131a] px-5 py-2.5 rounded-xl font-bold hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20 w-full sm:w-auto"
                     >
                         <Plus className="w-5 h-5" /> Novo Lançamento <span className="hidden md:inline text-[#0f131a]/60 text-xs ml-2 border border-[#0f131a]/30 rounded px-1.5 py-0.5">N</span>
                     </button>
@@ -189,15 +189,17 @@ export default function LancamentosPage() {
                         className="w-full bg-background border border-borders rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-brand-green transition-all"
                     />
                 </div>
-                <div className="flex flex-wrap gap-4">
-                    <DateRangePicker 
-                        startDate={startDate}
-                        endDate={endDate}
-                        onChange={(start: string, end: string) => {
-                            setStartDate(start);
-                            setEndDate(end);
-                        }}
-                    />
+                <div className="flex flex-wrap gap-4 w-full">
+                    <div className="flex-1 min-w-[200px] md:flex-none">
+                        <DateRangePicker 
+                            startDate={startDate}
+                            endDate={endDate}
+                            onChange={(start: string, end: string) => {
+                                setStartDate(start);
+                                setEndDate(end);
+                            }}
+                        />
+                    </div>
                     <select
                         value={tipoFilter}
                         onChange={(e) => setTipoFilter(e.target.value)}

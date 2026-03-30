@@ -109,7 +109,7 @@ export function DateRangePicker({ startDate, endDate, onChange }: DateRangePicke
     };
 
     return (
-        <div className="relative z-50" ref={popoverRef}>
+        <div className="relative" ref={popoverRef}>
             <div className="flex items-center gap-2">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
@@ -136,7 +136,7 @@ export function DateRangePicker({ startDate, endDate, onChange }: DateRangePicke
             </div>
 
             {isOpen && (
-                <div className="absolute top-full mt-2 left-0 bg-surface border border-borders rounded-xl shadow-xl w-[260px] p-4 text-white">
+                <div className="absolute top-full mt-2 left-0 z-50 bg-surface border border-borders rounded-xl shadow-xl w-[260px] p-4 text-white">
                     <div className="flex justify-between items-center mb-4">
                         <button onClick={prevMonth} className="p-1 hover:bg-white/10 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
                         <span className="font-bold text-sm capitalize">

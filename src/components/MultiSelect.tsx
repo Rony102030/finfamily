@@ -42,7 +42,7 @@ export function MultiSelect({ options, selected, onChange, placeholder }: MultiS
             : `${selected.length} selecionadas`;
 
     return (
-        <div className="relative flex-1 min-w-[200px] max-w-xs" ref={ref}>
+        <div className="relative flex-1 w-full min-w-[200px] max-w-full md:max-w-xs" ref={ref}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full flex items-center justify-between gap-2 bg-background border border-borders rounded-xl px-4 py-2.5 text-white/90 hover:text-white focus:outline-none focus:border-brand-green transition-all shadow-sm"
