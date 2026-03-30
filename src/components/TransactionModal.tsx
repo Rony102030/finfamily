@@ -126,6 +126,26 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
         const mesStr = dataStr.substring(0, 7); // YYYY-MM
         const [year, month, day] = dataStr.split('-');
 
+        let fundDiff = 0;
+        const isNowEmergencia = type === 'despesa' && categorias.find(c => c.id === categoriaId)?.nome === 'Emergência';
+
+        if (transactionToEdit) {
+            const wasEmergencia = transactionToEdit.tipo === 'despesa' && transactionToEdit.categorias?.nome === 'Emergência';
+            const oldVal = parseFloat(transactionToEdit.valor) || 0;
+            if (wasEmergencia && isNowEmergencia) {
+                fundDiff = oldVal - numVal;
+            } else if (wasEmergencia && !isNowEmergencia) {
+                fundDiff = oldVal;
+            } else if (!wasEmergencia && isNowEmergencia) {
+                fundDiff = -numVal;
+            }
+        } else {
+            if (isNowEmergencia) {
+                const repeatCount = (type === 'despesa' && tipoRepeticao === 'parcelada') ? quantidadeParcelas : 1;
+                fundDiff = -(numVal * repeatCount);
+            }
+        }
+
         try {
             if (transactionToEdit) {
                 // UPDATE flow
@@ -237,6 +257,15 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
 
                 const { error } = await supabase.from('lancamentos').insert(payloads);
                 if (error) throw error;
+            }
+
+            if (fundDiff !== 0) {
+                const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user.id).single();
+                if (f) {
+                    await supabase.from('fundos').update({
+                        emergencia_saldo: Math.max(0, parseFloat(f.emergencia_saldo || "0") + fundDiff)
+                    }).eq('id', f.id);
+                }
             }
 
             if (onSuccess) onSuccess();

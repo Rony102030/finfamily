@@ -91,11 +91,11 @@ export default function FundosPage() {
 
     const totalAcumulado = (fundos?.fixo_saldo || 0) + (fundos?.emergencia_saldo || 0) + (fundos?.outro_saldo || 0) + (fundos?.fundo4_saldo || 0) + (fundos?.fundo5_saldo || 0);
 
-    const valFixo = (rendaBrutaMes * (userConfig?.pct_fixo || 0)) / 100;
-    const valEmergencia = (rendaBrutaMes * (userConfig?.pct_emergencia || 0)) / 100;
-    const valOutro = (rendaBrutaMes * (userConfig?.pct_outro || 0)) / 100;
-    const valOutro4 = (rendaBrutaMes * (userConfig?.pct_fundo4 || 0)) / 100;
-    const valOutro5 = (rendaBrutaMes * (userConfig?.pct_fundo5 || 0)) / 100;
+    const valFixo = userConfig?.pct_fixo || 0;
+    const valEmergencia = userConfig?.pct_emergencia || 0;
+    const valOutro = userConfig?.pct_outro || 0;
+    const valOutro4 = userConfig?.pct_fundo4 || 0;
+    const valOutro5 = userConfig?.pct_fundo5 || 0;
     const totalDist = valFixo + valEmergencia + valOutro + valOutro4 + valOutro5;
 
     const handleRegistrar = async (e: React.FormEvent) => {
@@ -303,7 +303,7 @@ export default function FundosPage() {
                         </div>
                         <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.fixo_saldo.toFixed(2)}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-blue">
-                            <span className="bg-brand-blue/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_fixo}% de cada renda</span>
+                            <span className="bg-brand-blue/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_fixo} por mês</span>
                         </div>
                     </div>
                 )}
@@ -320,7 +320,7 @@ export default function FundosPage() {
                         </div>
                         <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.emergencia_saldo.toFixed(2)}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-yellow">
-                            <span className="bg-brand-yellow/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_emergencia}% de cada renda</span>
+                            <span className="bg-brand-yellow/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_emergencia} por mês</span>
                         </div>
                     </div>
                 )}
@@ -337,7 +337,7 @@ export default function FundosPage() {
                         </div>
                         <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.outro_saldo?.toFixed(2) || "0.00"}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-purple">
-                            <span className="bg-brand-purple/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_outro}% de cada renda</span>
+                            <span className="bg-brand-purple/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_outro} por mês</span>
                         </div>
                     </div>
                 )}
@@ -354,7 +354,7 @@ export default function FundosPage() {
                         </div>
                         <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.fundo4_saldo?.toFixed(2) || "0.00"}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-green">
-                            <span className="bg-brand-green/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_fundo4}% de cada renda</span>
+                            <span className="bg-brand-green/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_fundo4} por mês</span>
                         </div>
                     </div>
                 )}
@@ -371,7 +371,7 @@ export default function FundosPage() {
                         </div>
                         <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.fundo5_saldo?.toFixed(2) || "0.00"}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-red">
-                            <span className="bg-brand-red/20 px-2 py-0.5 rounded-full text-xs font-bold">{userConfig?.pct_fundo5}% de cada renda</span>
+                            <span className="bg-brand-red/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_fundo5} por mês</span>
                         </div>
                     </div>
                 )}
@@ -498,7 +498,7 @@ export default function FundosPage() {
                         <div className="p-6">
                             <form onSubmit={handleRegistrar} className="space-y-4">
                                 <p className="text-foreground/80 mb-4 bg-white/5 p-4 rounded-xl border border-white/10 text-sm">
-                                    Será utilizado seu <strong>Total de Receitas (Renda Bruta)</strong> de <strong>{activeMonth}</strong> para calcular os valores com base nas suas porcentagens, sem criar lançamentos adicionais. O valor será deduzido apenas na aba Dashboard (no seu "Líquido p/ Gastos").
+                                    Serão utilizados os **valores fixos** definidos nas configurações. Este total será deduzido da <strong>Renda Bruta</strong> de <strong>{activeMonth}</strong> no Dashboard ("Líquido p/ Gastos"), sem criar lançamentos adicionais.
                                 </p>
 
                                 <div>
@@ -513,19 +513,19 @@ export default function FundosPage() {
                                         </div>
                                         <div className="space-y-1 text-sm text-foreground/80">
                                             {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.fixo_nome || 'Renda Fixa'} ({userConfig?.pct_fixo}%):</span> <span className="text-white font-medium">+ R$ {valFixo.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.fixo_nome || 'Renda Fixa'} (Fixo):</span> <span className="text-white font-medium">+ R$ {valFixo.toFixed(2)}</span></div>
                                             )}
                                             {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.emergencia_nome || 'Emergência'} ({userConfig?.pct_emergencia}%):</span> <span className="text-white font-medium">+ R$ {valEmergencia.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.emergencia_nome || 'Emergência'} (Fixo):</span> <span className="text-white font-medium">+ R$ {valEmergencia.toFixed(2)}</span></div>
                                             )}
                                             {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.outro_nome || `3º Fundo`} ({userConfig?.pct_outro}%):</span> <span className="text-white font-medium">+ R$ {valOutro.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.outro_nome || `3º Fundo`} (Fixo):</span> <span className="text-white font-medium">+ R$ {valOutro.toFixed(2)}</span></div>
                                             )}
                                             {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.fundo4_nome || `Fundo 4`} ({userConfig?.pct_fundo4}%):</span> <span className="text-white font-medium">+ R$ {valOutro4.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.fundo4_nome || `Fundo 4`} (Fixo):</span> <span className="text-white font-medium">+ R$ {valOutro4.toFixed(2)}</span></div>
                                             )}
                                             {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.fundo5_nome || `Fundo 5`} ({userConfig?.pct_fundo5}%):</span> <span className="text-white font-medium">+ R$ {valOutro5.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.fundo5_nome || `Fundo 5`} (Fixo):</span> <span className="text-white font-medium">+ R$ {valOutro5.toFixed(2)}</span></div>
                                             )}
                                             <div className="pt-2 mt-2 border-t border-white/10 flex justify-between font-bold text-brand-red">
                                                 <span>Total Debitado da Carteira:</span>

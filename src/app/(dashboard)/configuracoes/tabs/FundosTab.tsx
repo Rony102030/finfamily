@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
-import { Plus, Edit2, Check, X, Wallet, Tag, Percent, Trash2 } from "lucide-react";
+import { Plus, Edit2, Check, X, Wallet, Tag, Trash2, Banknote } from "lucide-react";
 
 interface Fundo {
     id: string;
@@ -140,7 +140,7 @@ export function FundosTab() {
             <div>
                 <h2 className="text-lg font-heading font-bold text-white mb-1">Configuração de Fundos</h2>
                 <p className="text-sm text-foreground/60 mb-6">
-                    Defina a porcentagem de cada fundo que será retida automaticamente de cada renda.
+                    Defina o valor fixo de cada fundo que será reservado para acúmulo por mês.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -156,13 +156,13 @@ export function FundosTab() {
                             />
                         </div>
                         <div className="relative">
+                            <span className="absolute left-3 top-2.5 font-bold text-foreground/50">R$</span>
                             <input
                                 type="number"
                                 value={pctFixo}
                                 onChange={(e) => setPctFixo(e.target.value)}
-                                className="w-full bg-background border border-borders rounded-lg px-4 py-2 text-white pr-8 focus:outline-none focus:border-brand-green"
+                                className="w-full bg-background border border-borders rounded-lg pl-9 pr-4 py-2 text-white focus:outline-none focus:border-brand-green"
                             />
-                            <Percent className="absolute right-3 top-2.5 w-4 h-4 text-foreground/50" />
                         </div>
                         <div className="text-sm text-foreground/60">
                             Saldo: <span className="text-white font-medium">R$ {fundo?.fixo_saldo.toFixed(2)}</span>
@@ -181,13 +181,13 @@ export function FundosTab() {
                             />
                         </div>
                         <div className="relative">
+                            <span className="absolute left-3 top-2.5 font-bold text-foreground/50">R$</span>
                             <input
                                 type="number"
                                 value={pctEmergencia}
                                 onChange={(e) => setPctEmergencia(e.target.value)}
-                                className="w-full bg-background border border-borders rounded-lg px-4 py-2 text-white pr-8 focus:outline-none focus:border-brand-green"
+                                className="w-full bg-background border border-borders rounded-lg pl-9 pr-4 py-2 text-white focus:outline-none focus:border-brand-green"
                             />
-                            <Percent className="absolute right-3 top-2.5 w-4 h-4 text-foreground/50" />
                         </div>
                         <div className="text-sm text-foreground/60">
                             Saldo: <span className="text-white font-medium">R$ {fundo?.emergencia_saldo.toFixed(2)}</span>
@@ -211,13 +211,13 @@ export function FundosTab() {
                             </button>
                         </div>
                         <div className="relative">
+                            <span className="absolute left-3 top-2.5 font-bold text-foreground/50">R$</span>
                             <input
                                 type="number"
                                 value={pctOutro}
                                 onChange={(e) => setPctOutro(e.target.value)}
-                                className="w-full bg-background border border-borders rounded-lg px-4 py-2 text-white pr-8 focus:outline-none focus:border-brand-green"
+                                className="w-full bg-background border border-borders rounded-lg pl-9 pr-4 py-2 text-white focus:outline-none focus:border-brand-green"
                             />
-                            <Percent className="absolute right-3 top-2.5 w-4 h-4 text-foreground/50" />
                         </div>
                         <div className="text-sm text-foreground/60">
                             Saldo: <span className="text-white font-medium">R$ {fundo?.outro_saldo?.toFixed(2) || "0.00"}</span>
@@ -242,13 +242,13 @@ export function FundosTab() {
                                 </button>
                             </div>
                             <div className="relative">
+                                <span className="absolute left-3 top-2.5 font-bold text-foreground/50">R$</span>
                                 <input
                                     type="number"
                                     value={pctFundo4}
                                     onChange={(e) => setPctFundo4(e.target.value)}
-                                    className="w-full bg-background border border-borders rounded-lg px-4 py-2 text-white pr-8 focus:outline-none focus:border-brand-green"
+                                    className="w-full bg-background border border-borders rounded-lg pl-9 pr-4 py-2 text-white focus:outline-none focus:border-brand-green"
                                 />
-                                <Percent className="absolute right-3 top-2.5 w-4 h-4 text-foreground/50" />
                             </div>
                             <div className="text-sm text-foreground/60">
                                 Saldo: <span className="text-white font-medium">R$ {fundo?.fundo4_saldo?.toFixed(2) || "0.00"}</span>
@@ -274,13 +274,13 @@ export function FundosTab() {
                                 </button>
                             </div>
                             <div className="relative">
+                                <span className="absolute left-3 top-2.5 font-bold text-foreground/50">R$</span>
                                 <input
                                     type="number"
                                     value={pctFundo5}
                                     onChange={(e) => setPctFundo5(e.target.value)}
-                                    className="w-full bg-background border border-borders rounded-lg px-4 py-2 text-white pr-8 focus:outline-none focus:border-brand-green"
+                                    className="w-full bg-background border border-borders rounded-lg pl-9 pr-4 py-2 text-white focus:outline-none focus:border-brand-green"
                                 />
-                                <Percent className="absolute right-3 top-2.5 w-4 h-4 text-foreground/50" />
                             </div>
                             <div className="text-sm text-foreground/60">
                                 Saldo: <span className="text-white font-medium">R$ {fundo?.fundo5_saldo?.toFixed(2) || "0.00"}</span>
@@ -301,15 +301,15 @@ export function FundosTab() {
                 </div>
 
                 {(() => {
-                    const totalPct = (parseFloat(pctFixo) || 0) + (parseFloat(pctEmergencia) || 0) + (parseFloat(pctOutro) || 0) + (parseFloat(pctFundo4) || 0) + (parseFloat(pctFundo5) || 0);
+                    const totalVal = (parseFloat(pctFixo) || 0) + (parseFloat(pctEmergencia) || 0) + (parseFloat(pctOutro) || 0) + (parseFloat(pctFundo4) || 0) + (parseFloat(pctFundo5) || 0);
                     return (
                         <div className="mt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                             <div className="space-y-2">
-                                <div className={`text-sm ${totalPct > 100 ? 'text-brand-red font-bold' : 'text-foreground/50'}`}>
-                                    Total alocado: {totalPct}%
+                                <div className="text-sm text-foreground/50">
+                                    Total planejado: R$ {totalVal.toFixed(2)}
                                 </div>
                                 <div className="text-xs text-brand-yellow/80 bg-brand-yellow/10 p-2 rounded-lg border border-brand-yellow/20 max-w-lg">
-                                    💡 <strong>Lembrete:</strong> Ao alterar a porcentagem dos fundos, a modificação passa a valer para os próximos lançamentos. Lançamentos feitos no passado não terão as transferências para os fundos alteradas.
+                                    💡 <strong>Lembrete:</strong> Ao alterar o valor dos fundos, a modificação valerá para as próximas vezes que você realizar o Registro de Distribuição na aba de Fundos.
                                 </div>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3">
@@ -322,7 +322,7 @@ export function FundosTab() {
                                 </button>
                                 <button
                                     onClick={saveConfig}
-                                    disabled={saving || totalPct > 100}
+                                    disabled={saving}
                                     className="bg-brand-green text-background px-6 py-2 rounded-lg font-bold hover:bg-brand-green/90 transition-all disabled:opacity-50 whitespace-nowrap"
                                 >
                                     {saving ? "Salvando..." : "Salvar Configurações"}

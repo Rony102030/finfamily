@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { DateRangePicker } from "@/components/DateRangePicker";
 
 function formatCurrency(value: number) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -18,6 +19,8 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [showValues, setShowValues] = useState(true);
     const [txs, setTxs] = useState<any[]>([]);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [monthContribs, setMonthContribs] = useState<any[]>([]);
     const [fundosTotal, setFundosTotal] = useState(0);
 
@@ -63,12 +66,23 @@ export default function DashboardPage() {
 
     const categoryTotals: Record<string, { nome: string, cor: string, valor: number, limite: number }> = {};
 
-    txs.forEach(t => {
+    const filteredTxs = txs.filter(t => {
+        if (!startDate && !endDate) return true;
+        const tDate = t.data;
+        if (!tDate) return true;
+        if (startDate && tDate < startDate) return false;
+        if (endDate && tDate > endDate) return false;
+        return true;
+    });
+
+    filteredTxs.forEach(t => {
         if (t.tipo === 'renda') {
             rendaBruta += t.valor;
         } else {
             if (t.categorias && t.categorias.nome.toLowerCase() === 'fundos') {
                 // Ignore explicitly since it's already counted in monthContribs
+            } else if (t.categorias && t.categorias.nome === 'Emergência') {
+                // Ignore from dashboard totals because it is deducted directly from the fund balance
             } else {
                 despesasTotais += t.valor;
                 if (t.categorias) {
@@ -115,6 +129,20 @@ export default function DashboardPage() {
                     </p>
                 </div>
             </header>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-surface border border-borders rounded-2xl p-4">
+                <span className="text-sm font-semibold text-foreground/80 flex-shrink-0">Filtrar Período:</span>
+                <div className="w-full sm:w-auto">
+                    <DateRangePicker 
+                        startDate={startDate} 
+                        endDate={endDate} 
+                        onChange={(start: string, end: string) => {
+                            setStartDate(start);
+                            setEndDate(end);
+                        }} 
+                    />
+                </div>
+            </div>
 
             {limitAlerts.length > 0 && (
                 <div className="bg-brand-red/10 border border-brand-red/20 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center">

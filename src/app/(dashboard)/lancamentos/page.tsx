@@ -6,6 +6,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { Plus, Search, Filter, Trash2, Edit2, ArrowDownCircle, ArrowUpCircle, Calendar } from "lucide-react";
 import { TransactionModal } from "@/components/TransactionModal";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { MultiSelect } from "@/components/MultiSelect";
 
 export default function LancamentosPage() {
     const { user } = useAuth();
@@ -17,10 +19,11 @@ export default function LancamentosPage() {
     const [search, setSearch] = useState("");
     const [tipoFilter, setTipoFilter] = useState("todos");
     const [statusFilter, setStatusFilter] = useState("todos");
-    const [categoriaFilter, setCategoriaFilter] = useState("todos");
-    const [subcategoriaFilter, setSubcategoriaFilter] = useState("todos");
-    const [carteiraFilter, setCarteiraFilter] = useState("todos");
-    const [dataFilter, setDataFilter] = useState("");
+    const [categoriaFilter, setCategoriaFilter] = useState<string[]>([]);
+    const [subcategoriaFilter, setSubcategoriaFilter] = useState<string[]>([]);
+    const [carteiraFilter, setCarteiraFilter] = useState<string[]>([]);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [transactionToEdit, setTransactionToEdit] = useState<any>(null);
@@ -64,18 +67,28 @@ export default function LancamentosPage() {
     const handleDelete = async (t: any) => {
         if (!confirm("Tem certeza que deseja excluir? Se for uma compra parcelada, TODAS as parcelas vinculadas serão excluídas!")) return;
 
-        // Se for renda, precisamos reverter também as contribuições
         if (t.tipo === 'renda') {
-            const { data: contrib } = await supabase.from('contribuicoes').select('*').eq('lancamento_id', t.id).single();
-            if (contrib) {
-                const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
-                if (f) {
-                    await supabase.from('fundos').update({
-                        fixo_saldo: Math.max(0, f.fixo_saldo - contrib.fixo_valor),
-                        emergencia_saldo: Math.max(0, f.emergencia_saldo - contrib.emergencia_valor),
-                        outro_saldo: Math.max(0, f.outro_saldo - contrib.outro_valor)
-                    }).eq('id', f.id);
+            // Renda deletions now only affect the overall dashboard Renda Bruta. 
+            // Fundos are manually distributed per month and are no longer tied to individual lancamentos.
+        }
+
+        let refundAmount = 0;
+        if (t.tipo === 'despesa' && t.categorias?.nome === 'Emergência') {
+            if (t.group_id) {
+                const { data: items } = await supabase.from('lancamentos').select('valor').eq('group_id', t.group_id);
+                if (items) {
+                    refundAmount = items.reduce((acc: number, curr: any) => acc + curr.valor, 0);
                 }
+            } else if (t.parcela_total > 1) {
+                const { data: items } = await supabase.from('lancamentos').select('valor')
+                    .eq('descricao', t.descricao)
+                    .eq('parcela_total', t.parcela_total)
+                    .eq('valor', t.valor);
+                if (items) {
+                    refundAmount = items.reduce((acc: number, curr: any) => acc + curr.valor, 0);
+                }
+            } else {
+                refundAmount = t.valor;
             }
         }
 
@@ -91,6 +104,15 @@ export default function LancamentosPage() {
             await supabase.from('lancamentos').delete().eq('id', t.id);
         }
 
+        if (refundAmount > 0) {
+            const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
+            if (f) {
+                await supabase.from('fundos').update({
+                    emergencia_saldo: Math.max(0, parseFloat(f.emergencia_saldo || "0") + refundAmount)
+                }).eq('id', f.id);
+            }
+        }
+
         fetchTransactions();
     };
 
@@ -103,21 +125,28 @@ export default function LancamentosPage() {
     const filteredTransactions = transactions.filter(t => {
         const matchSearch = t.descricao.toLowerCase().includes(search.toLowerCase());
         const matchTipo = tipoFilter === 'todos' || t.tipo === tipoFilter;
-        const matchStatus = statusFilter === 'todos' || t.status === statusFilter;
-        const matchCat = categoriaFilter === 'todos' || t.categorias?.nome === categoriaFilter;
-        const matchSub = subcategoriaFilter === 'todos' || t.subcategorias?.nome === subcategoriaFilter;
-        const matchCarteira = carteiraFilter === 'todos' || t.carteiras?.nome === carteiraFilter;
-        const matchData = !dataFilter || (t.data && t.data.startsWith(dataFilter));
+        const matchStatus = statusFilter === 'todos' || 
+                            (statusFilter === 'parceladas' && t.parcela_total > 1) || 
+                            t.status === statusFilter;
+        const matchCat = categoriaFilter.length === 0 || categoriaFilter.includes(t.categorias?.nome);
+        const matchSub = subcategoriaFilter.length === 0 || subcategoriaFilter.includes(t.subcategorias?.nome);
+        const matchCarteira = carteiraFilter.length === 0 || carteiraFilter.includes(t.carteiras?.nome);
+        
+        const tDate = t.data;
+        const matchData = (!startDate || (tDate && tDate >= startDate)) && (!endDate || (tDate && tDate <= endDate));
         return matchSearch && matchTipo && matchStatus && matchCat && matchSub && matchCarteira && matchData;
     });
 
     const availableCategorias = Array.from(new Set(transactions.filter(t => t.tipo === 'despesa' && t.categorias).map(t => t.categorias.nome)));
-    const availableSubcategorias = Array.from(new Set(transactions.filter(t => t.tipo === 'despesa' && t.subcategorias && (categoriaFilter === 'todos' || t.categorias?.nome === categoriaFilter)).map(t => t.subcategorias.nome)));
+    const availableSubcategorias = Array.from(new Set(transactions.filter(t => t.tipo === 'despesa' && t.subcategorias && (categoriaFilter.length === 0 || categoriaFilter.includes(t.categorias?.nome))).map(t => t.subcategorias.nome)));
     const availableCarteiras = Array.from(new Set(transactions.map(t => t.carteiras?.nome).filter(Boolean)));
+
+    const filterRendas = filteredTransactions.filter(t => t.tipo === 'renda').reduce((acc, curr) => acc + curr.valor, 0);
+    const filterDespesas = filteredTransactions.filter(t => t.tipo === 'despesa').reduce((acc, curr) => acc + curr.valor, 0);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-borders">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-borders">
                 <div>
                     <h1 className="text-2xl font-heading font-bold text-white tracking-tight">
                         Lançamentos
@@ -126,15 +155,27 @@ export default function LancamentosPage() {
                         Gerencie suas receitas e despesas de <span className="text-brand-green font-medium">{activeMonth}</span>
                     </p>
                 </div>
-                <button
-                    onClick={() => {
-                        setTransactionToEdit(null);
-                        setIsModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 bg-brand-green text-[#0f131a] px-5 py-2.5 rounded-xl font-bold hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20"
-                >
-                    <Plus className="w-5 h-5" /> Novo Lançamento <span className="hidden md:inline text-[#0f131a]/60 text-xs ml-2 border border-[#0f131a]/30 rounded px-1.5 py-0.5">N</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex bg-surface border border-borders rounded-xl overflow-hidden divide-x divide-borders">
+                        <div className="px-4 py-2 flex flex-col justify-center min-w-[120px]">
+                            <span className="text-[10px] uppercase font-bold text-brand-green/80">Receitas</span>
+                            <span className="text-brand-green font-bold text-sm">{formatCurrency(filterRendas)}</span>
+                        </div>
+                        <div className="px-4 py-2 flex flex-col justify-center min-w-[120px]">
+                            <span className="text-[10px] uppercase font-bold text-brand-red/80">Despesas</span>
+                            <span className="text-brand-red font-bold text-sm">{formatCurrency(filterDespesas)}</span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setTransactionToEdit(null);
+                            setIsModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 bg-brand-green text-[#0f131a] px-5 py-2.5 rounded-xl font-bold hover:bg-brand-green/90 transition-all shadow-lg shadow-brand-green/20"
+                    >
+                        <Plus className="w-5 h-5" /> Novo Lançamento <span className="hidden md:inline text-[#0f131a]/60 text-xs ml-2 border border-[#0f131a]/30 rounded px-1.5 py-0.5">N</span>
+                    </button>
+                </div>
             </header>
 
             {/* Filters */}
@@ -149,23 +190,14 @@ export default function LancamentosPage() {
                     />
                 </div>
                 <div className="flex flex-wrap gap-4">
-                    <div className="relative">
-                        <input
-                            type="date"
-                            value={dataFilter}
-                            onChange={(e) => setDataFilter(e.target.value)}
-                            className="bg-background border border-borders rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-green transition-all min-w-[140px] [&::-webkit-calendar-picker-indicator]:invert cursor-pointer"
-                            title="Filtrar por data"
-                        />
-                        {dataFilter && (
-                            <button 
-                                onClick={() => setDataFilter('')}
-                                className="absolute right-10 top-3 text-[10px] font-bold bg-brand-red/20 text-brand-red rounded px-1.5 py-0.5 hover:bg-brand-red/30 transition-colors"
-                            >
-                                X
-                            </button>
-                        )}
-                    </div>
+                    <DateRangePicker 
+                        startDate={startDate}
+                        endDate={endDate}
+                        onChange={(start: string, end: string) => {
+                            setStartDate(start);
+                            setEndDate(end);
+                        }}
+                    />
                     <select
                         value={tipoFilter}
                         onChange={(e) => setTipoFilter(e.target.value)}
@@ -183,39 +215,34 @@ export default function LancamentosPage() {
                         <option value="todos">Todos status</option>
                         <option value="pago">Pagos/Recebidos</option>
                         <option value="pendente">Pendentes</option>
+                        <option value="parceladas">Apenas Parceladas</option>
                     </select>
                     {availableCarteiras.length > 0 && (
-                        <select
-                            value={carteiraFilter}
-                            onChange={(e) => setCarteiraFilter(e.target.value)}
-                            className="bg-background border border-borders rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-green transition-all min-w-[140px]"
-                        >
-                            <option value="todos">Todas Carteiras/Bancos</option>
-                            {availableCarteiras.map((c: any) => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        <MultiSelect
+                            placeholder="Carteiras / Bancos"
+                            options={availableCarteiras as string[]}
+                            selected={carteiraFilter}
+                            onChange={setCarteiraFilter}
+                        />
                     )}
                     {tipoFilter !== 'renda' && availableCategorias.length > 0 && (
-                        <select
-                            value={categoriaFilter}
-                            onChange={(e) => {
-                                setCategoriaFilter(e.target.value);
-                                setSubcategoriaFilter('todos');
+                        <MultiSelect
+                            placeholder="Categorias"
+                            options={availableCategorias as string[]}
+                            selected={categoriaFilter}
+                            onChange={(selected) => {
+                                setCategoriaFilter(selected);
+                                setSubcategoriaFilter([]);
                             }}
-                            className="bg-background border border-borders rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-green transition-all min-w-[140px]"
-                        >
-                            <option value="todos">Todas Categorias</option>
-                            {availableCategorias.map((c: any) => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        />
                     )}
                     {tipoFilter !== 'renda' && availableSubcategorias.length > 0 && (
-                        <select
-                            value={subcategoriaFilter}
-                            onChange={(e) => setSubcategoriaFilter(e.target.value)}
-                            className="bg-background border border-borders rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-green transition-all min-w-[140px]"
-                        >
-                            <option value="todos">Todas Subcategorias</option>
-                            {availableSubcategorias.map((s: any) => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                        <MultiSelect
+                            placeholder="Subcategorias"
+                            options={availableSubcategorias as string[]}
+                            selected={subcategoriaFilter}
+                            onChange={setSubcategoriaFilter}
+                        />
                     )}
                 </div>
             </div>
