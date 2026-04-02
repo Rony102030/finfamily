@@ -127,10 +127,10 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
         const [year, month, day] = dataStr.split('-');
 
         let fundDiff = 0;
-        const isNowEmergencia = type === 'despesa' && categorias.find(c => c.id === categoriaId)?.nome === 'Emergência';
+        const isNowEmergencia = type === 'despesa' && (() => { const nome = categorias.find(c => c.id === categoriaId)?.nome || ''; return nome.toLowerCase().includes('emergên') || nome.toLowerCase().includes('emergencia'); })();
 
         if (transactionToEdit) {
-            const wasEmergencia = transactionToEdit.tipo === 'despesa' && transactionToEdit.categorias?.nome === 'Emergência';
+            const wasEmergencia = transactionToEdit.tipo === 'despesa' && (() => { const nome = transactionToEdit.categorias?.nome || ''; return nome.toLowerCase().includes('emergên') || nome.toLowerCase().includes('emergencia'); })();
             const oldVal = parseFloat(transactionToEdit.valor) || 0;
             if (wasEmergencia && isNowEmergencia) {
                 fundDiff = oldVal - numVal;

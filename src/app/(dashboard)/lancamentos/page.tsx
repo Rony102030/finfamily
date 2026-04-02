@@ -73,7 +73,8 @@ export default function LancamentosPage() {
         }
 
         let refundAmount = 0;
-        if (t.tipo === 'despesa' && t.categorias?.nome === 'Emergência') {
+        const isEmergCat = t.categorias?.nome?.toLowerCase().includes('emergên') || t.categorias?.nome?.toLowerCase().includes('emergencia');
+        if (t.tipo === 'despesa' && isEmergCat) {
             if (t.group_id) {
                 const { data: items } = await supabase.from('lancamentos').select('valor').eq('group_id', t.group_id);
                 if (items) {

@@ -20,7 +20,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Briefcase,
-    Bell
+    Bell,
+    SlidersHorizontal
 } from "lucide-react";
 
 export function Sidebar({ className }: { className?: string }) {
@@ -70,6 +71,7 @@ export function Sidebar({ className }: { className?: string }) {
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { href: "/lancamentos", label: "Lançamentos", icon: Wallet },
         { href: "/fundos", label: "Fundos", icon: PiggyBank },
+        { href: "/fundos/configuracao", label: "Conf. Fundos", icon: SlidersHorizontal, sub: true },
         { href: "/metas", label: "Metas", icon: Target },
         { href: "/recorrentes", label: "Recorrentes", icon: Repeat },
         { href: "/relatorios", label: "Relatórios", icon: BarChart2 },
@@ -151,12 +153,14 @@ export function Sidebar({ className }: { className?: string }) {
             {/* Navigation */}
             <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
                 {navLinks.map((link) => {
-                    const isActive = pathname === link.href || (pathname !== "/dashboard" && pathname.startsWith(link.href));
+                    const isActive = pathname === link.href || (pathname !== "/dashboard" && pathname.startsWith(link.href) && link.href !== "/fundos");
                     return (
                         <Link
                             key={link.href}
                             href={link.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                                (link as any).sub ? 'ml-4' : ''
+                            } ${isActive
                                 ? "bg-brand-green/10 text-brand-green"
                                 : "text-foreground/70 hover:bg-white/5 hover:text-white"
                                 }`}

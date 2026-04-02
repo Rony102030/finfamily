@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
-import { PiggyBank, ArrowUpRight, ShieldCheck, Wallet, TrendingUp, PlusCircle, X, Trash2 } from "lucide-react";
+import { PiggyBank, ArrowUpRight, ShieldCheck, Wallet, TrendingUp, PlusCircle, X, Trash2, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useAppStore } from "@/store";
 
@@ -319,8 +320,16 @@ export default function FundosPage() {
                             <span className="font-semibold">{fundos?.emergencia_nome || 'Emergência'}</span>
                         </div>
                         <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.emergencia_saldo.toFixed(2)}</p>
-                        <div className="flex items-center gap-2 text-sm text-brand-yellow">
+                        <div className="flex items-center justify-between gap-2 text-sm text-brand-yellow">
                             <span className="bg-brand-yellow/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_emergencia} por mês</span>
+                            <Link
+                                href="/fundos/emergencia"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-yellow text-background rounded-lg text-xs font-bold hover:bg-brand-yellow/90 transition-colors shadow-sm"
+                                title="Registrar gasto de emergência"
+                            >
+                                <ShieldAlert className="w-3.5 h-3.5" />
+                                Usar Fundo
+                            </Link>
                         </div>
                     </div>
                 )}

@@ -4,13 +4,12 @@ import { useState } from "react";
 import { CarteirasTab } from "./tabs/CarteirasTab";
 import { CategoriasTab } from "./tabs/CategoriasTab";
 import { FontesTab } from "./tabs/FontesTab";
-import { FundosTab } from "./tabs/FundosTab";
 import { SubcategoriasTab } from "./tabs/SubcategoriasTab";
 import { IATab } from "./tabs/IATab";
 import { PerfilTab } from "./tabs/PerfilTab";
 import { Settings } from "lucide-react";
 
-type TabType = 'perfil' | 'carteiras' | 'categorias' | 'subcategorias' | 'fontes' | 'fundos' | 'ia';
+type TabType = 'perfil' | 'carteiras' | 'categorias' | 'subcategorias' | 'fontes' | 'ia';
 
 const tabs: { id: TabType; label: string }[] = [
     { id: 'perfil', label: 'Perfil' },
@@ -18,7 +17,6 @@ const tabs: { id: TabType; label: string }[] = [
     { id: 'categorias', label: 'Categorias' },
     { id: 'subcategorias', label: 'Subcategorias' },
     { id: 'fontes', label: 'Fontes de Renda' },
-    { id: 'fundos', label: 'Fundos' },
     { id: 'ia', label: 'IA (Anthropic)' },
 ];
 
@@ -64,7 +62,6 @@ export default function ConfiguracoesPage() {
                 {activeTab === 'categorias' && <CategoriasTab />}
                 {activeTab === 'subcategorias' && <SubcategoriasTab />}
                 {activeTab === 'fontes' && <FontesTab />}
-                {activeTab === 'fundos' && <FundosTab />}
                 {activeTab === 'ia' && <IATab />}
             </div>
         </div>

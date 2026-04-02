@@ -81,8 +81,8 @@ export default function DashboardPage() {
         } else {
             if (t.categorias && t.categorias.nome.toLowerCase() === 'fundos') {
                 // Ignore explicitly since it's already counted in monthContribs
-            } else if (t.categorias && t.categorias.nome === 'Emergência') {
-                // Ignore from dashboard totals because it is deducted directly from the fund balance
+            } else if (t.categorias && (t.categorias.nome.toLowerCase().includes('emergên') || t.categorias.nome.toLowerCase().includes('emergencia'))) {
+                // Emergência: ocultar do Dashboard — vem do saldo do fundo, não do orçamento do mês
             } else {
                 despesasTotais += t.valor;
                 if (t.categorias) {
