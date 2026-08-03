@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
+import { formatMonth, formatCurrency } from "@/lib/format";
 import { Repeat, CheckCircle2, PlayCircle, Trash2 } from "lucide-react";
 
 export default function RecorrentesPage() {
@@ -110,7 +111,7 @@ export default function RecorrentesPage() {
                     <Repeat className="text-brand-blue w-6 h-6" /> Contas Recorrentes
                 </h1>
                 <p className="text-foreground/60 mt-1">
-                    Gerencie suas despesas fixas (como Aluguel, Internet) e lance-as rapidamente em <span className="text-brand-green font-medium">{activeMonth}</span>.
+                    Gerencie suas despesas fixas (como Aluguel, Internet) e lance-as rapidamente em <span className="text-brand-green font-medium">{formatMonth(activeMonth)}</span>.
                 </p>
             </header>
 
@@ -121,7 +122,7 @@ export default function RecorrentesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {pendentes.map(tx => (
                             <div key={tx.id} className="bg-surface border border-brand-blue/30 rounded-xl p-5 hover:border-brand-blue transition-colors relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-brand-blue/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-brand-blue/5 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-brand-blue/10 flex items-center justify-center text-xl border border-brand-blue/20">
@@ -140,7 +141,7 @@ export default function RecorrentesPage() {
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <p className="font-sans font-bold text-2xl text-brand-red mb-1">R$ {tx.valor.toFixed(2)}</p>
+                                <p className="font-sans font-bold text-2xl text-brand-red mb-1">{formatCurrency(tx.valor)}</p>
                                 <p className="text-xs text-foreground/50 mb-4">{tx.carteiras?.nome || 'Nenhuma carteira'}</p>
 
                                 <button
@@ -157,7 +158,7 @@ export default function RecorrentesPage() {
                     <div className="text-center py-12 text-foreground/50 border border-dashed border-borders rounded-xl flex flex-col items-center">
                         <CheckCircle2 className="w-10 h-10 text-brand-green/50 mb-3" />
                         <p>Tudo em dia!</p>
-                        <p className="text-sm">Não há contas recorrentes pendentes para {activeMonth}.</p>
+                        <p className="text-sm">Não há contas recorrentes pendentes para {formatMonth(activeMonth)}.</p>
                     </div>
                 )}
             </div>
@@ -173,7 +174,7 @@ export default function RecorrentesPage() {
                                 </div>
                                 <div>
                                     <p className="font-semibold text-white text-sm">{tx.descricao}</p>
-                                    <p className="font-bold text-brand-red text-xs">R$ {tx.valor.toFixed(2)}</p>
+                                    <p className="font-bold text-brand-red text-xs">{formatCurrency(tx.valor)}</p>
                                 </div>
                             </div>
                         </div>
