@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { formatMonth } from "@/lib/format";
-import { Briefcase, Plus, Trash2, ArrowUpCircle, ArrowDownCircle, DollarSign } from "lucide-react";
+import { Briefcase, Plus, Trash2, Edit2, Check, X, ArrowUpCircle, ArrowDownCircle, DollarSign } from "lucide-react";
 
 function formatCurrency(value: number) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -19,6 +19,7 @@ export function DashboardTab() {
 
     // Form state
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [tipo, setTipo] = useState<'receita' | 'despesa'>('receita');
     const [valor, setValor] = useState("");
     const [data, setData] = useState(new Date().toISOString().split('T')[0]);
@@ -50,31 +51,59 @@ export function DashboardTab() {
         setLoading(false);
     };
 
-    const handleAdd = async (e: React.FormEvent) => {
+    const resetForm = () => {
+        setEditingId(null);
+        setTipo('receita');
+        setValor("");
+        setData(new Date().toISOString().split('T')[0]);
+        setObservacao("");
+    };
+
+    const handleEdit = (entry: any) => {
+        setEditingId(entry.id);
+        setTipo(entry.tipo);
+        setValor(String(entry.valor));
+        setData(entry.data);
+        setObservacao(entry.observacao || "");
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!valor || !data || !user) return;
 
         setIsSubmitting(true);
-        const { data: newEntry, error } = await supabase
-            .from('servico_extra')
-            .insert({
-                user_id: user.id,
-                tipo,
-                valor: parseFloat(valor.replace(',', '.')),
-                data,
-                observacao
-            })
-            .select()
-            .single();
+        const parsed = parseFloat(valor.replace(',', '.'));
 
-        setIsSubmitting(false);
+        if (editingId) {
+            const { error } = await supabase
+                .from('servico_extra')
+                .update({ tipo, valor: parsed, data, observacao })
+                .eq('id', editingId)
+                .eq('user_id', user.id);
 
-        if (!error && newEntry) {
-            setEntries([newEntry, ...entries].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()));
-            setValor("");
-            setObservacao("");
+            setIsSubmitting(false);
+            if (!error) {
+                setEntries(entries.map(e => e.id === editingId ? { ...e, tipo, valor: parsed, data, observacao } : e)
+                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()));
+                resetForm();
+            } else {
+                alert("Erro ao atualizar registro.");
+            }
         } else {
-            alert("Erro ao adicionar registro.");
+            const { data: newEntry, error } = await supabase
+                .from('servico_extra')
+                .insert({ user_id: user.id, tipo, valor: parsed, data, observacao })
+                .select()
+                .single();
+
+            setIsSubmitting(false);
+            if (!error && newEntry) {
+                setEntries([newEntry, ...entries].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()));
+                resetForm();
+            } else {
+                alert("Erro ao adicionar registro.");
+            }
         }
     };
 
@@ -113,8 +142,17 @@ export function DashboardTab() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Formulário */}
                 <div className="lg:col-span-1">
-                    <form onSubmit={handleAdd} className="bg-cards border border-borders rounded-2xl p-6 space-y-4 sticky top-24">
-                        <h3 className="font-heading font-bold text-white text-lg">Novo Registro</h3>
+                    <form onSubmit={handleSubmit} className="bg-cards border border-borders rounded-2xl p-6 space-y-4 sticky top-24">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-heading font-bold text-white text-lg">
+                                {editingId ? 'Editar Registro' : 'Novo Registro'}
+                            </h3>
+                            {editingId && (
+                                <button type="button" onClick={resetForm} className="text-foreground/50 hover:text-white transition-colors p-1">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            )}
+                        </div>
 
                         <div className="p-1 bg-surface rounded-xl flex gap-1 border border-borders">
                             <button
@@ -175,11 +213,12 @@ export function DashboardTab() {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full bg-brand-blue hover:bg-brand-blue/90 text-background font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50"
+                            className={`w-full font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50 ${editingId ? 'bg-brand-green hover:bg-brand-green/90 text-background' : 'bg-brand-blue hover:bg-brand-blue/90 text-background'}`}
                         >
                             {isSubmitting ? 'Salvando...' : (
                                 <>
-                                    <Plus className="w-5 h-5" /> Adicionar
+                                    {editingId ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                                    {editingId ? 'Atualizar' : 'Adicionar'}
                                 </>
                             )}
                         </button>
@@ -217,13 +256,22 @@ export function DashboardTab() {
                                         <span className={`font-bold ${e.tipo === 'receita' ? 'text-brand-green' : 'text-brand-red'}`}>
                                             {e.tipo === 'receita' ? '+' : '-'}{formatCurrency(e.valor)}
                                         </span>
-                                        <button
-                                            onClick={() => handleDelete(e.id)}
-                                            className="p-2 text-foreground/40 hover:text-brand-red rounded-lg hover:bg-white/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer"
-                                            title="Excluir"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => handleEdit(e)}
+                                                className="p-2 text-foreground/40 hover:text-brand-blue rounded-lg hover:bg-white/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer"
+                                                title="Editar"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(e.id)}
+                                                className="p-2 text-foreground/40 hover:text-brand-red rounded-lg hover:bg-white/5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all cursor-pointer"
+                                                title="Excluir"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

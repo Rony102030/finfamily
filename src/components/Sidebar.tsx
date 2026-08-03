@@ -83,13 +83,13 @@ export function Sidebar({ className }: { className?: string }) {
             items: [
                 { href: "/relatorios", label: "Relatórios", icon: BarChart2 },
                 { href: "/calculadora", label: "Calculadora", icon: Calculator },
+                { href: "/antigravity", label: "FinFamily IA", icon: Bot },
             ],
         },
         {
             label: "Negócios",
             items: [
                 { href: "/servico-extra", label: userConfig?.servico_extra_nome || "Serviço Extra", icon: Briefcase },
-                { href: "/antigravity", label: "FinFamily IA", icon: Bot },
             ],
         },
         {
