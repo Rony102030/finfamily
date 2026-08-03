@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
+import { useAppStore } from "@/store";
 import { Briefcase, Plus, Trash2, ArrowUpCircle, ArrowDownCircle, DollarSign } from "lucide-react";
 
 function formatCurrency(value: number) {
@@ -11,6 +12,7 @@ function formatCurrency(value: number) {
 
 export function DashboardTab() {
     const { user } = useAuth();
+    const { activeMonth } = useAppStore();
     const [loading, setLoading] = useState(true);
     const [entries, setEntries] = useState<any[]>([]);
 
@@ -22,17 +24,24 @@ export function DashboardTab() {
     const [observacao, setObservacao] = useState("");
 
     useEffect(() => {
-        if (user) {
+        if (user && activeMonth) {
             fetchData();
         }
-    }, [user]);
+    }, [user, activeMonth]);
 
     const fetchData = async () => {
         setLoading(true);
+        const [year, month] = activeMonth.split('-').map(Number);
+        const startDate = `${activeMonth}-01`;
+        const nextMonth = month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, '0')}`;
+        const endDate = `${nextMonth}-01`;
+
         const { data: servicoData } = await supabase
             .from('servico_extra')
             .select('*')
             .eq('user_id', user!.id)
+            .gte('data', startDate)
+            .lt('data', endDate)
             .order('data', { ascending: false })
             .order('created_at', { ascending: false });
 
