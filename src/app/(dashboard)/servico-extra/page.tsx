@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
+import { formatMonth } from "@/lib/format";
 import { Briefcase, Edit2, Check, X } from "lucide-react";
 
 import { DashboardTab } from "./tabs/DashboardTab";
@@ -18,7 +19,7 @@ const tabs: { id: TabType; label: string }[] = [
 
 export default function ServicoExtraPage() {
     const { user } = useAuth();
-    const { userConfig } = useAppStore();
+    const { userConfig, activeMonth } = useAppStore();
 
     const [activeTab, setActiveTab] = useState<TabType>('dashboard');
 
@@ -81,7 +82,7 @@ export default function ServicoExtraPage() {
                         )}
                     </div>
                     <p className="text-foreground/60 mt-1">
-                        Área de controle totalmente isolada para não afetar seu relatório financeiro principal.
+                        Controle isolado do relatório principal — <span className="text-brand-green font-medium">{formatMonth(activeMonth)}</span>
                     </p>
                 </div>
             </header>

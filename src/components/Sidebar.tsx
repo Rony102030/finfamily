@@ -67,18 +67,36 @@ export function Sidebar({ className }: { className?: string }) {
         }
     ];
 
-    const navLinks = [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/lancamentos", label: "Lançamentos", icon: Wallet },
-        { href: "/fundos", label: "Fundos", icon: PiggyBank },
-        { href: "/fundos/configuracao", label: "Conf. Fundos", icon: SlidersHorizontal, sub: true },
-        { href: "/metas", label: "Metas", icon: Target },
-        { href: "/recorrentes", label: "Recorrentes", icon: Repeat },
-        { href: "/relatorios", label: "Relatórios", icon: BarChart2 },
-        { href: "/calculadora", label: "Calculadora", icon: Calculator },
-        { href: "/servico-extra", label: userConfig?.servico_extra_nome || "Serviço Extra", icon: Briefcase },
-        { href: "/antigravity", label: "AntiGravity IA", icon: Bot },
-        { href: "/configuracoes", label: "Configurações", icon: Settings },
+    const navSections = [
+        {
+            items: [
+                { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+                { href: "/lancamentos", label: "Lançamentos", icon: Wallet },
+                { href: "/fundos", label: "Fundos", icon: PiggyBank },
+                { href: "/fundos/configuracao", label: "Conf. Fundos", icon: SlidersHorizontal, sub: true },
+                { href: "/metas", label: "Metas", icon: Target },
+                { href: "/recorrentes", label: "Recorrentes", icon: Repeat },
+            ],
+        },
+        {
+            label: "Ferramentas",
+            items: [
+                { href: "/relatorios", label: "Relatórios", icon: BarChart2 },
+                { href: "/calculadora", label: "Calculadora", icon: Calculator },
+            ],
+        },
+        {
+            label: "Negócios",
+            items: [
+                { href: "/servico-extra", label: userConfig?.servico_extra_nome || "Serviço Extra", icon: Briefcase },
+                { href: "/antigravity", label: "AntiGravity IA", icon: Bot },
+            ],
+        },
+        {
+            items: [
+                { href: "/configuracoes", label: "Configurações", icon: Settings },
+            ],
+        },
     ];
 
     const handlePrevMonth = () => {
@@ -152,24 +170,31 @@ export function Sidebar({ className }: { className?: string }) {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-                {navLinks.map((link) => {
-                    const isActive = pathname === link.href || (pathname !== "/dashboard" && pathname.startsWith(link.href) && link.href !== "/fundos");
-                    return (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                                (link as any).sub ? 'ml-4' : ''
-                            } ${isActive
-                                ? "bg-brand-green/10 text-brand-green"
-                                : "text-foreground/70 hover:bg-white/5 hover:text-white"
-                                }`}
-                        >
-                            <link.icon className="w-5 h-5" />
-                            <span className="font-medium text-sm">{link.label}</span>
-                        </Link>
-                    );
-                })}
+                {navSections.map((section, sIdx) => (
+                    <div key={sIdx} className={sIdx > 0 ? "pt-3 mt-3 border-t border-borders/50" : ""}>
+                        {section.label && (
+                            <p className="px-3 mb-1.5 text-[10px] uppercase font-bold text-foreground/40 tracking-wider">{section.label}</p>
+                        )}
+                        {section.items.map((link) => {
+                            const isActive = pathname === link.href || (pathname !== "/dashboard" && pathname.startsWith(link.href) && link.href !== "/fundos");
+                            return (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                                        (link as any).sub ? 'ml-4' : ''
+                                    } ${isActive
+                                        ? "bg-brand-green/10 text-brand-green"
+                                        : "text-foreground/70 hover:bg-white/5 hover:text-white"
+                                        }`}
+                                >
+                                    <link.icon className="w-5 h-5" />
+                                    <span className="font-medium text-sm">{link.label}</span>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                ))}
             </nav>
 
             {/* Month Selector Footer */}

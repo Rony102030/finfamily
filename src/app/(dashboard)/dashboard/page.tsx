@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
+import { formatMonth } from "@/lib/format";
 import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { DateRangePicker } from "@/components/DateRangePicker";
@@ -125,7 +126,7 @@ export default function DashboardPage() {
                         </button>
                     </div>
                     <p className="text-foreground/60 mt-1">
-                        Visão geral de suas finanças em <span className="text-brand-green font-medium">{activeMonth}</span>
+                        Visão geral de suas finanças em <span className="text-brand-green font-medium">{formatMonth(activeMonth)}</span>
                     </p>
                 </div>
             </header>

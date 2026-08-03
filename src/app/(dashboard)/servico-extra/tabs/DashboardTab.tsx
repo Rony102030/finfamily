@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
+import { formatMonth } from "@/lib/format";
 import { Briefcase, Plus, Trash2, ArrowUpCircle, ArrowDownCircle, DollarSign } from "lucide-react";
 
 function formatCurrency(value: number) {
@@ -193,8 +194,8 @@ export function DashboardTab() {
                             <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Briefcase className="w-6 h-6 text-foreground/40" />
                             </div>
-                            <p className="text-foreground/60 font-medium">Nenhum registro ainda</p>
-                            <p className="text-sm text-foreground/40 mt-1">Seus lançamentos aparecerão aqui.</p>
+                            <p className="text-foreground/60 font-medium">Nenhum registro em {formatMonth(activeMonth)}</p>
+                            <p className="text-sm text-foreground/40 mt-1">Adicione receitas ou despesas para este mês.</p>
                         </div>
                     ) : (
                         <div className="space-y-3">

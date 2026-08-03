@@ -7,6 +7,7 @@ import { PiggyBank, ArrowUpRight, ShieldCheck, Wallet, TrendingUp, PlusCircle, X
 import Link from "next/link";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useAppStore } from "@/store";
+import { formatCurrency, formatMonth } from "@/lib/format";
 
 export default function FundosPage() {
     const { user } = useAuth();
@@ -286,7 +287,7 @@ export default function FundosPage() {
                 </div>
                 <div className="text-right bg-brand-yellow/10 border border-brand-yellow/20 px-4 py-2 rounded-xl">
                     <p className="text-xs text-brand-yellow font-bold uppercase tracking-wider">Total Acumulado</p>
-                    <p className="text-xl font-sans font-bold text-brand-yellow">R$ {totalAcumulado.toFixed(2)}</p>
+                    <p className="text-xl font-sans font-bold text-brand-yellow">{formatCurrency(totalAcumulado)}</p>
                 </div>
             </header>
 
@@ -302,7 +303,7 @@ export default function FundosPage() {
                             <TrendingUp className="w-5 h-5" />
                             <span className="font-semibold">{fundos?.fixo_nome || 'Renda Fixa'}</span>
                         </div>
-                        <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.fixo_saldo.toFixed(2)}</p>
+                        <p className="text-3xl font-sans font-bold text-white mb-2">{formatCurrency(fundos?.fixo_saldo ?? 0)}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-blue">
                             <span className="bg-brand-blue/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_fixo} por mês</span>
                         </div>
@@ -319,7 +320,7 @@ export default function FundosPage() {
                             <ShieldCheck className="w-5 h-5" />
                             <span className="font-semibold">{fundos?.emergencia_nome || 'Emergência'}</span>
                         </div>
-                        <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.emergencia_saldo.toFixed(2)}</p>
+                        <p className="text-3xl font-sans font-bold text-white mb-2">{formatCurrency(fundos?.emergencia_saldo ?? 0)}</p>
                         <div className="flex items-center justify-between gap-2 text-sm text-brand-yellow">
                             <span className="bg-brand-yellow/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_emergencia} por mês</span>
                             <Link
@@ -344,7 +345,7 @@ export default function FundosPage() {
                             <Wallet className="w-5 h-5" />
                             <span className="font-semibold">{fundos?.outro_nome || '3º Fundo'}</span>
                         </div>
-                        <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.outro_saldo?.toFixed(2) || "0.00"}</p>
+                        <p className="text-3xl font-sans font-bold text-white mb-2">{formatCurrency(fundos?.outro_saldo ?? 0)}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-purple">
                             <span className="bg-brand-purple/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_outro} por mês</span>
                         </div>
@@ -361,7 +362,7 @@ export default function FundosPage() {
                             <Wallet className="w-5 h-5" />
                             <span className="font-semibold">{fundos?.fundo4_nome || 'Fundo 4'}</span>
                         </div>
-                        <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.fundo4_saldo?.toFixed(2) || "0.00"}</p>
+                        <p className="text-3xl font-sans font-bold text-white mb-2">{formatCurrency(fundos?.fundo4_saldo ?? 0)}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-green">
                             <span className="bg-brand-green/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_fundo4} por mês</span>
                         </div>
@@ -378,7 +379,7 @@ export default function FundosPage() {
                             <Wallet className="w-5 h-5" />
                             <span className="font-semibold">{fundos?.fundo5_nome || 'Fundo 5'}</span>
                         </div>
-                        <p className="text-3xl font-sans font-bold text-white mb-2">R$ {fundos?.fundo5_saldo?.toFixed(2) || "0.00"}</p>
+                        <p className="text-3xl font-sans font-bold text-white mb-2">{formatCurrency(fundos?.fundo5_saldo ?? 0)}</p>
                         <div className="flex items-center gap-2 text-sm text-brand-red">
                             <span className="bg-brand-red/20 px-2 py-0.5 rounded-full text-xs font-bold">R$ {userConfig?.pct_fundo5} por mês</span>
                         </div>
@@ -468,11 +469,11 @@ export default function FundosPage() {
                                 {history.map(h => (
                                     <tr key={h.mes} className="hover:bg-white/[0.02]">
                                         <td className="py-4 px-4 font-semibold text-white">{h.mes}</td>
-                                        {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && <td className="py-4 px-4 text-brand-blue">+ R$ {h.fixo.toFixed(2)}</td>}
-                                        {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && <td className="py-4 px-4 text-brand-yellow">+ R$ {h.emergencia.toFixed(2)}</td>}
-                                        {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && <td className="py-4 px-4 text-brand-purple">+ R$ {h.outro.toFixed(2)}</td>}
-                                        {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && <td className="py-4 px-4 text-brand-green">+ R$ {h.fundo4.toFixed(2)}</td>}
-                                        {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && <td className="py-4 px-4 text-brand-red">+ R$ {h.fundo5.toFixed(2)}</td>}
+                                        {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && <td className="py-4 px-4 text-brand-blue">+ {formatCurrency(h.fixo)}</td>}
+                                        {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && <td className="py-4 px-4 text-brand-yellow">+ {formatCurrency(h.emergencia)}</td>}
+                                        {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && <td className="py-4 px-4 text-brand-purple">+ {formatCurrency(h.outro)}</td>}
+                                        {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && <td className="py-4 px-4 text-brand-green">+ {formatCurrency(h.fundo4)}</td>}
+                                        {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && <td className="py-4 px-4 text-brand-red">+ {formatCurrency(h.fundo5)}</td>}
                                         <td className="py-4 px-4 text-right">
                                             <button
                                                 onClick={() => handleDeleteMonth(h.mes)}
@@ -507,12 +508,12 @@ export default function FundosPage() {
                         <div className="p-6">
                             <form onSubmit={handleRegistrar} className="space-y-4">
                                 <p className="text-foreground/80 mb-4 bg-white/5 p-4 rounded-xl border border-white/10 text-sm">
-                                    Serão utilizados os **valores fixos** definidos nas configurações. Este total será deduzido da <strong>Renda Bruta</strong> de <strong>{activeMonth}</strong> no Dashboard ("Líquido p/ Gastos"), sem criar lançamentos adicionais.
+                                    Serão utilizados os **valores fixos** definidos nas configurações. Este total será deduzido da <strong>Renda Bruta</strong> de <strong>{formatMonth(activeMonth)}</strong> no Dashboard ("Líquido p/ Gastos"), sem criar lançamentos adicionais.
                                 </p>
 
                                 <div>
-                                    <label className="text-sm font-medium text-foreground/80 mb-1.5 block">Renda Bruta apurada em {activeMonth}</label>
-                                    <input type="text" readOnly value={`R$ ${rendaBrutaMes.toFixed(2)}`} className="w-full bg-background border border-borders rounded-lg px-4 py-2.5 text-white opacity-80 cursor-not-allowed" />
+                                    <label className="text-sm font-medium text-foreground/80 mb-1.5 block">Renda Bruta apurada em {formatMonth(activeMonth)}</label>
+                                    <input type="text" readOnly value={formatCurrency(rendaBrutaMes)} className="w-full bg-background border border-borders rounded-lg px-4 py-2.5 text-white opacity-80 cursor-not-allowed" />
                                 </div>
 
                                 {rendaBrutaMes > 0 && (
@@ -522,23 +523,23 @@ export default function FundosPage() {
                                         </div>
                                         <div className="space-y-1 text-sm text-foreground/80">
                                             {(!!userConfig?.fixo_nome || (userConfig?.pct_fixo || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.fixo_nome || 'Renda Fixa'} (Fixo):</span> <span className="text-white font-medium">+ R$ {valFixo.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.fixo_nome || 'Renda Fixa'} (Fixo):</span> <span className="text-white font-medium">+ {formatCurrency(valFixo)}</span></div>
                                             )}
                                             {(!!userConfig?.emergencia_nome || (userConfig?.pct_emergencia || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.emergencia_nome || 'Emergência'} (Fixo):</span> <span className="text-white font-medium">+ R$ {valEmergencia.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.emergencia_nome || 'Emergência'} (Fixo):</span> <span className="text-white font-medium">+ {formatCurrency(valEmergencia)}</span></div>
                                             )}
                                             {(!!userConfig?.outro_nome || (userConfig?.pct_outro || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.outro_nome || `3º Fundo`} (Fixo):</span> <span className="text-white font-medium">+ R$ {valOutro.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.outro_nome || `3º Fundo`} (Fixo):</span> <span className="text-white font-medium">+ {formatCurrency(valOutro)}</span></div>
                                             )}
                                             {(!!userConfig?.fundo4_nome || (userConfig?.pct_fundo4 || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.fundo4_nome || `Fundo 4`} (Fixo):</span> <span className="text-white font-medium">+ R$ {valOutro4.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.fundo4_nome || `Fundo 4`} (Fixo):</span> <span className="text-white font-medium">+ {formatCurrency(valOutro4)}</span></div>
                                             )}
                                             {(!!userConfig?.fundo5_nome || (userConfig?.pct_fundo5 || 0) > 0) && (
-                                                <div className="flex justify-between"><span>{userConfig?.fundo5_nome || `Fundo 5`} (Fixo):</span> <span className="text-white font-medium">+ R$ {valOutro5.toFixed(2)}</span></div>
+                                                <div className="flex justify-between"><span>{userConfig?.fundo5_nome || `Fundo 5`} (Fixo):</span> <span className="text-white font-medium">+ {formatCurrency(valOutro5)}</span></div>
                                             )}
                                             <div className="pt-2 mt-2 border-t border-white/10 flex justify-between font-bold text-brand-red">
                                                 <span>Total Debitado da Carteira:</span>
-                                                <span>R$ {totalDist.toFixed(2)}</span>
+                                                <span>{formatCurrency(totalDist)}</span>
                                             </div>
                                         </div>
                                     </div>

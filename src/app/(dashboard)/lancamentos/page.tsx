@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
+import { formatMonth } from "@/lib/format";
 import { Plus, Search, Filter, Trash2, Edit2, ArrowDownCircle, ArrowUpCircle, Calendar } from "lucide-react";
 import { TransactionModal } from "@/components/TransactionModal";
 import { DateRangePicker } from "@/components/DateRangePicker";
@@ -153,7 +154,7 @@ export default function LancamentosPage() {
                         Lançamentos
                     </h1>
                     <p className="text-foreground/60 mt-1">
-                        Gerencie suas receitas e despesas de <span className="text-brand-green font-medium">{activeMonth}</span>
+                        Gerencie suas receitas e despesas de <span className="text-brand-green font-medium">{formatMonth(activeMonth)}</span>
                     </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto mt-4 lg:mt-0">
