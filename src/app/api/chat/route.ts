@@ -19,7 +19,7 @@ export async function POST(req: Request) {
                 model: 'claude-3-haiku-20240307', // fast model
                 max_tokens: 1024,
                 messages: messages,
-                system: "Você é o AntiGravity IA, um consultor financeiro especialista. O usuário está usando o app FinFamily. Responda de forma curta, direta e amigável em Português do Brasil. Formate em Markdown simplificado."
+                system: "Você é o FinFamily IA, um consultor financeiro especialista. O usuário está usando o app FinFamily. Responda de forma curta, direta e amigável em Português do Brasil. Formate em Markdown simplificado."
             })
         });
 

@@ -12,7 +12,7 @@ interface Message {
 export default function AntiGravityPage() {
     const { anthropicKey } = useAppStore();
     const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: 'Olá! Sou o **AntiGravity IA**, seu consultor financeiro pessoal do FinFamily. Como posso ajudar com suas finanças hoje?' }
+        { role: 'assistant', content: 'Olá! Sou o **FinFamily IA**, seu consultor financeiro pessoal. Como posso ajudar com suas finanças hoje?' }
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -86,7 +86,7 @@ export default function AntiGravityPage() {
                         <Sparkles className="text-brand-purple w-5 h-5" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-heading font-bold text-white tracking-tight">AntiGravity IA</h1>
+                        <h1 className="text-xl font-heading font-bold text-white tracking-tight">FinFamily IA</h1>
                         <p className="text-xs text-brand-purple font-semibold animate-pulse">Online e pronto para ajudar</p>
                     </div>
                 </div>
@@ -149,7 +149,7 @@ export default function AntiGravityPage() {
                     <input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Pergunte ao AntiGravity..."
+                        placeholder="Pergunte ao FinFamily IA..."
                         disabled={loading}
                         className="w-full bg-cards border border-borders rounded-xl pl-6 pr-16 py-4 text-white focus:outline-none focus:border-brand-purple transition-all shadow-lg"
                     />

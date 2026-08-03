@@ -89,7 +89,7 @@ export function Sidebar({ className }: { className?: string }) {
             label: "Negócios",
             items: [
                 { href: "/servico-extra", label: userConfig?.servico_extra_nome || "Serviço Extra", icon: Briefcase },
-                { href: "/antigravity", label: "AntiGravity IA", icon: Bot },
+                { href: "/antigravity", label: "FinFamily IA", icon: Bot },
             ],
         },
         {

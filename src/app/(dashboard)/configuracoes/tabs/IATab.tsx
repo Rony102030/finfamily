@@ -22,7 +22,7 @@ export function IATab() {
                     <h2 className="text-lg font-heading font-bold text-white mb-1 flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-brand-purple" /> Inteligência Artificial
                     </h2>
-                    <p className="text-sm text-foreground/60">Configure as integrações de IA do AntiGravity.</p>
+                    <p className="text-sm text-foreground/60">Configure as integrações de IA do FinFamily.</p>
                 </div>
             </div>
 
