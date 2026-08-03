@@ -5,8 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { formatMonth } from "@/lib/format";
-import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle, Eye, EyeOff, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, AreaChart, Area } from 'recharts';
 import { DateRangePicker } from "@/components/DateRangePicker";
 
 function formatCurrency(value: number) {
@@ -24,6 +24,24 @@ export default function DashboardPage() {
     const [endDate, setEndDate] = useState("");
     const [monthContribs, setMonthContribs] = useState<any[]>([]);
     const [fundosTotal, setFundosTotal] = useState(0);
+    const [prevMonthTxs, setPrevMonthTxs] = useState<any[]>([]);
+    const [trendData, setTrendData] = useState<{ mes: string, receitas: number, despesas: number }[]>([]);
+
+    const getPrevMonth = (month: string) => {
+        const [y, m] = month.split("-").map(Number);
+        const d = new Date(y, m - 2, 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    const getLast6Months = (month: string) => {
+        const months: string[] = [];
+        let [y, m] = month.split("-").map(Number);
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(y, m - 1 - i, 1);
+            months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        }
+        return months;
+    };
 
     useEffect(() => {
         if (user && activeMonth) {
@@ -33,23 +51,34 @@ export default function DashboardPage() {
 
     const fetchData = async () => {
         setLoading(true);
-        // Load transactions for current month
-        const { data: lancamentos } = await supabase
-            .from('lancamentos')
-            .select('*, categorias(nome, cor, limite_mensal)')
-            .eq('user_id', user!.id)
-            .eq('mes', activeMonth);
+        const prevMonth = getPrevMonth(activeMonth);
+        const last6 = getLast6Months(activeMonth);
 
-        if (lancamentos) setTxs(lancamentos);
+        const [currentRes, contribsRes, fundosRes, prevRes, trendRes] = await Promise.all([
+            supabase.from('lancamentos').select('*, categorias(nome, cor, limite_mensal)').eq('user_id', user!.id).eq('mes', activeMonth),
+            supabase.from('contribuicoes').select('*').eq('user_id', user!.id).eq('mes', activeMonth),
+            supabase.from('fundos').select('*').eq('user_id', user!.id).single(),
+            supabase.from('lancamentos').select('*, categorias(nome)').eq('user_id', user!.id).eq('mes', prevMonth),
+            supabase.from('lancamentos').select('mes, tipo, valor').eq('user_id', user!.id).in('mes', last6),
+        ]);
 
-        // Load contribuicoes for the month
-        const { data: contribs } = await supabase.from('contribuicoes').select('*').eq('user_id', user!.id).eq('mes', activeMonth);
-        if (contribs) setMonthContribs(contribs);
-
-        // Load total funds across all time
-        const { data: f } = await supabase.from('fundos').select('*').eq('user_id', user!.id).single();
-        if (f) {
+        if (currentRes.data) setTxs(currentRes.data);
+        if (contribsRes.data) setMonthContribs(contribsRes.data);
+        if (fundosRes.data) {
+            const f = fundosRes.data;
             setFundosTotal((f.fixo_saldo || 0) + (f.emergencia_saldo || 0) + (f.outro_saldo || 0) + (f.fundo4_saldo || 0) + (f.fundo5_saldo || 0));
+        }
+        if (prevRes.data) setPrevMonthTxs(prevRes.data);
+
+        if (trendRes.data) {
+            const grouped: Record<string, { receitas: number, despesas: number }> = {};
+            last6.forEach(m => { grouped[m] = { receitas: 0, despesas: 0 }; });
+            trendRes.data.forEach((t: any) => {
+                if (!grouped[t.mes]) return;
+                if (t.tipo === 'renda') grouped[t.mes].receitas += t.valor;
+                else grouped[t.mes].despesas += t.valor;
+            });
+            setTrendData(last6.map(m => ({ mes: m, ...grouped[m] })));
         }
 
         setLoading(false);
@@ -108,8 +137,25 @@ export default function DashboardPage() {
         { name: 'Despesas', value: despesasTotais, color: '#ff4d4d' }
     ].filter(d => d.value > 0);
 
-    // Alerts
-    const limitAlerts = Object.values(categoryTotals).filter(c => c.limite > 0 && c.valor >= c.limite * 0.9);
+    // Alerts — categories at 80%+ of their limit
+    const budgetAlerts = Object.values(categoryTotals)
+        .filter(c => c.limite > 0 && c.valor >= c.limite * 0.8)
+        .map(c => ({ ...c, pct: Math.round((c.valor / c.limite) * 100), exceeded: c.valor >= c.limite }))
+        .sort((a, b) => b.pct - a.pct);
+
+    // Previous month comparison
+    let prevDespesas = 0;
+    let prevReceitas = 0;
+    prevMonthTxs.forEach(t => {
+        if (t.tipo === 'renda') prevReceitas += t.valor;
+        else {
+            if (t.categorias && (t.categorias.nome.toLowerCase() === 'fundos' || t.categorias.nome.toLowerCase().includes('emergên') || t.categorias.nome.toLowerCase().includes('emergencia'))) return;
+            prevDespesas += t.valor;
+        }
+    });
+
+    const despesaDiff = prevDespesas > 0 ? ((despesasTotais - prevDespesas) / prevDespesas) * 100 : 0;
+    const receitaDiff = prevReceitas > 0 ? ((rendaBruta - prevReceitas) / prevReceitas) * 100 : 0;
 
     if (loading) return <div className="p-8 text-foreground/50 animate-pulse">Calculando dashboard...</div>;
 
@@ -145,17 +191,28 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {limitAlerts.length > 0 && (
-                <div className="bg-brand-red/10 border border-brand-red/20 rounded-xl p-4 flex flex-col md:flex-row gap-4 items-start md:items-center">
-                    <AlertCircle className="text-brand-red w-6 h-6 flex-shrink-0" />
-                    <div className="text-sm">
-                        <strong className="text-brand-red block mb-1">Atenção aos limites de categoria!</strong>
-                        {limitAlerts.map(a => (
-                            <span key={a.nome} className="text-brand-red/80 mr-4">
-                                {a.nome}: {formatCurrency(a.valor)} / {formatCurrency(a.limite)}
-                            </span>
-                        ))}
+            {budgetAlerts.length > 0 && (
+                <div className="bg-cards border border-borders rounded-2xl p-5 space-y-3">
+                    <div className="flex items-center gap-2 mb-1">
+                        <AlertCircle className="text-brand-red w-5 h-5" />
+                        <h3 className="font-heading font-bold text-white text-sm">Alertas de Orçamento</h3>
                     </div>
+                    {budgetAlerts.map(a => (
+                        <div key={a.nome} className="space-y-1.5">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-foreground/80">{a.nome}</span>
+                                <span className={`font-bold ${a.exceeded ? 'text-brand-red' : 'text-brand-yellow'}`}>
+                                    {a.pct}% — {showValues ? formatCurrency(a.valor) : '••••••'} / {showValues ? formatCurrency(a.limite) : '••••••'}
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all ${a.exceeded ? 'bg-brand-red' : a.pct >= 90 ? 'bg-brand-yellow' : 'bg-brand-green'}`}
+                                    style={{ width: `${Math.min(a.pct, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
 
@@ -166,6 +223,58 @@ export default function DashboardPage() {
                 <KpiCard title="Despesas Totais" value={despesasTotais} icon={<ArrowDownCircle className="w-5 h-5" />} color="text-brand-red" bgColor="bg-brand-red/10" showValues={showValues} />
                 <KpiCard title="Sobra do Mês" value={sobraMes} icon={<Banknote className="w-5 h-5" />} color={sobraMes >= 0 ? "text-brand-blue" : "text-brand-red"} bgColor={sobraMes >= 0 ? "bg-brand-blue/10" : "bg-brand-red/10"} showValues={showValues} />
                 <KpiCard title="Fundos Total (Todos meses)" value={fundosTotal} icon={<PiggyBank className="w-5 h-5" />} color="text-brand-yellow" bgColor="bg-brand-yellow/10" showValues={showValues} />
+            </div>
+
+            {/* Month Comparison + Trend */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Comparison vs Previous Month */}
+                <div className="bg-cards border border-borders rounded-2xl p-6">
+                    <h3 className="font-heading font-bold text-white mb-4 text-lg">vs. Mês Anterior</h3>
+                    <div className="space-y-4">
+                        <ComparisonRow label="Receitas" current={rendaBruta} diff={receitaDiff} showValues={showValues} />
+                        <ComparisonRow label="Despesas" current={despesasTotais} diff={despesaDiff} inverted showValues={showValues} />
+                        <ComparisonRow label="Sobra" current={sobraMes} diff={prevDespesas > 0 || prevReceitas > 0 ? ((sobraMes - (prevReceitas - prevDespesas)) / Math.max(prevReceitas - prevDespesas, 1)) * 100 : 0} showValues={showValues} />
+                    </div>
+                </div>
+
+                {/* 6-Month Trend Sparkline */}
+                <div className="lg:col-span-2 bg-cards border border-borders rounded-2xl p-6">
+                    <h3 className="font-heading font-bold text-white mb-4 text-lg">Evolução dos Últimos 6 Meses</h3>
+                    <div className="h-[180px]">
+                        {trendData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#00e5a0" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#00e5a0" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="gradDespesas" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ff4d4d" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#ff4d4d" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#232b3e" />
+                                    <XAxis dataKey="mes" stroke="#64748b" tickLine={false} axisLine={false} fontSize={11} tickFormatter={(val) => { const [, m] = val.split('-'); const names = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; return names[parseInt(m)-1]; }} />
+                                    <YAxis stroke="#64748b" tickLine={false} axisLine={false} fontSize={11} tickFormatter={(val) => showValues ? `${(val/1000).toFixed(0)}k` : ''} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff' }}
+                                        formatter={(value: any, name: string) => [showValues ? formatCurrency(Number(value)) : '••••••', name === 'receitas' ? 'Receitas' : 'Despesas']}
+                                        labelFormatter={(label) => formatMonth(label)}
+                                    />
+                                    <Area type="monotone" dataKey="receitas" stroke="#00e5a0" strokeWidth={2} fill="url(#gradReceitas)" />
+                                    <Area type="monotone" dataKey="despesas" stroke="#ff4d4d" strokeWidth={2} fill="url(#gradDespesas)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-foreground/50 border border-dashed border-borders rounded-xl">Sem dados suficientes.</div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-6 mt-3 text-xs text-foreground/60">
+                        <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded bg-[#00e5a0]"></div> Receitas</div>
+                        <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded bg-[#ff4d4d]"></div> Despesas</div>
+                    </div>
+                </div>
             </div>
 
             {/* Charts Area */}
@@ -254,6 +363,29 @@ export default function DashboardPage() {
                 </div>
 
             </div>
+        </div>
+    );
+}
+
+function ComparisonRow({ label, current, diff, inverted = false, showValues = true }: { label: string, current: number, diff: number, inverted?: boolean, showValues?: boolean }) {
+    const isPositive = inverted ? diff < 0 : diff > 0;
+    const isNeutral = Math.abs(diff) < 0.5;
+    const color = isNeutral ? 'text-foreground/50' : isPositive ? 'text-brand-green' : 'text-brand-red';
+
+    return (
+        <div className="flex items-center justify-between">
+            <div>
+                <p className="text-sm text-foreground/60">{label}</p>
+                <p className="text-lg font-bold text-white">{showValues ? formatCurrency(current) : '••••••'}</p>
+            </div>
+            {diff !== 0 ? (
+                <div className={`flex items-center gap-1 text-sm font-bold ${color}`}>
+                    {isNeutral ? <Minus className="w-3.5 h-3.5" /> : isPositive ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                    <span>{Math.abs(Math.round(diff))}%</span>
+                </div>
+            ) : (
+                <span className="text-xs text-foreground/40">Sem dados anteriores</span>
+            )}
         </div>
     );
 }
