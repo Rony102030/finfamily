@@ -21,7 +21,11 @@ import {
     ChevronRight,
     Briefcase,
     Bell,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Building2,
+    Tag,
+    HandCoins,
+    BellRing
 } from "lucide-react";
 
 export function Sidebar({ className }: { className?: string }) {
@@ -72,15 +76,19 @@ export function Sidebar({ className }: { className?: string }) {
             items: [
                 { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
                 { href: "/lancamentos", label: "Lançamentos", icon: Wallet },
+                { href: "/transacoes-banco", label: "Banco (Pluggy)", icon: Building2 },
                 { href: "/fundos", label: "Fundos", icon: PiggyBank },
                 { href: "/fundos/configuracao", label: "Conf. Fundos", icon: SlidersHorizontal, sub: true },
                 { href: "/metas", label: "Metas", icon: Target },
                 { href: "/recorrentes", label: "Recorrentes", icon: Repeat },
+                { href: "/emprestimos", label: "Empréstimos", icon: HandCoins },
             ],
         },
         {
             label: "Ferramentas",
             items: [
+                { href: "/classificacao", label: "Classificação", icon: Tag },
+                { href: "/notificacoes", label: "Notificações", icon: BellRing },
                 { href: "/relatorios", label: "Relatórios", icon: BarChart2 },
                 { href: "/calculadora", label: "Calculadora", icon: Calculator },
                 { href: "/antigravity", label: "FinFamily IA", icon: Bot },
