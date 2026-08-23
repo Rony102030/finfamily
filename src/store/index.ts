@@ -1,11 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface DashboardCardLayout {
-    id: string;
-    colSpan: number;
-}
-
 export interface UserConfig {
     pct_fixo: number;
     pct_emergencia: number;
@@ -25,11 +20,9 @@ interface AppState {
     activeMonth: string; // "YYYY-MM"
     userConfig: UserConfig | null;
     anthropicKey: string | null;
-    dashboardLayout: DashboardCardLayout[] | null;
     setActiveMonth: (month: string) => void;
     setUserConfig: (config: UserConfig) => void;
     setAnthropicKey: (key: string) => void;
-    setDashboardLayout: (layout: DashboardCardLayout[]) => void;
 }
 
 const getCurrentMonthStr = () => {
@@ -43,18 +36,15 @@ export const useAppStore = create<AppState>()(
             activeMonth: getCurrentMonthStr(),
             userConfig: null,
             anthropicKey: null,
-            dashboardLayout: null,
             setActiveMonth: (activeMonth) => set({ activeMonth }),
             setUserConfig: (userConfig) => set({ userConfig }),
             setAnthropicKey: (anthropicKey) => set({ anthropicKey }),
-            setDashboardLayout: (dashboardLayout) => set({ dashboardLayout }),
         }),
         {
             name: 'finfamily-storage',
             partialize: (state) => ({
                 anthropicKey: state.anthropicKey,
                 activeMonth: state.activeMonth,
-                dashboardLayout: state.dashboardLayout,
             }),
         }
     )
