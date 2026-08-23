@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { formatMonth } from "@/lib/format";
-import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle, Eye, EyeOff, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle, Eye, EyeOff, ArrowUp, ArrowDown, Minus, GripVertical, Maximize2, Minimize2, Pencil, Check } from "lucide-react";
+import type { DashboardCardLayout } from "@/store";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, AreaChart, Area } from 'recharts';
 import { DateRangePicker } from "@/components/DateRangePicker";
 
@@ -15,7 +16,7 @@ function formatCurrency(value: number) {
 
 export default function DashboardPage() {
     const { user } = useAuth();
-    const { activeMonth, userConfig } = useAppStore();
+    const { activeMonth, userConfig, dashboardLayout, setDashboardLayout } = useAppStore();
 
     const [loading, setLoading] = useState(true);
     const [showValues, setShowValues] = useState(true);
@@ -25,7 +26,9 @@ export default function DashboardPage() {
     const [monthContribs, setMonthContribs] = useState<any[]>([]);
     const [fundosTotal, setFundosTotal] = useState(0);
     const [prevMonthTxs, setPrevMonthTxs] = useState<any[]>([]);
-    const [trendData, setTrendData] = useState<{ mes: string, receitas: number, despesas: number }[]>([]);
+    const [trendData, setTrendData] = useState<{ mes: string, liquido: number, despesas: number }[]>([]);
+    const [editMode, setEditMode] = useState(false);
+    const [draggedId, setDraggedId] = useState<string | null>(null);
 
     const getPrevMonth = (month: string) => {
         const [y, m] = month.split("-").map(Number);
@@ -54,12 +57,13 @@ export default function DashboardPage() {
         const prevMonth = getPrevMonth(activeMonth);
         const last6 = getLast6Months(activeMonth);
 
-        const [currentRes, contribsRes, fundosRes, prevRes, trendRes] = await Promise.all([
+        const [currentRes, contribsRes, fundosRes, prevRes, trendRes, trendContribsRes] = await Promise.all([
             supabase.from('lancamentos').select('*, categorias(nome, cor, limite_mensal)').eq('user_id', user!.id).eq('mes', activeMonth),
             supabase.from('contribuicoes').select('*').eq('user_id', user!.id).eq('mes', activeMonth),
             supabase.from('fundos').select('*').eq('user_id', user!.id).single(),
             supabase.from('lancamentos').select('*, categorias(nome)').eq('user_id', user!.id).eq('mes', prevMonth),
             supabase.from('lancamentos').select('mes, tipo, valor').eq('user_id', user!.id).in('mes', last6),
+            supabase.from('contribuicoes').select('mes, fixo_valor, emergencia_valor, outro_valor, fundo4_valor, fundo5_valor').eq('user_id', user!.id).in('mes', last6),
         ]);
 
         if (currentRes.data) setTxs(currentRes.data);
@@ -78,7 +82,21 @@ export default function DashboardPage() {
                 if (t.tipo === 'renda') grouped[t.mes].receitas += t.valor;
                 else grouped[t.mes].despesas += t.valor;
             });
-            setTrendData(last6.map(m => ({ mes: m, ...grouped[m] })));
+
+            const contribsByMonth: Record<string, number> = {};
+            last6.forEach(m => { contribsByMonth[m] = 0; });
+            if (trendContribsRes.data) {
+                trendContribsRes.data.forEach((c: any) => {
+                    if (!contribsByMonth[c.mes] && contribsByMonth[c.mes] !== 0) return;
+                    contribsByMonth[c.mes] += (c.fixo_valor || 0) + (c.emergencia_valor || 0) + (c.outro_valor || 0) + (c.fundo4_valor || 0) + (c.fundo5_valor || 0);
+                });
+            }
+
+            setTrendData(last6.map(m => ({
+                mes: m,
+                liquido: grouped[m].receitas - contribsByMonth[m],
+                despesas: grouped[m].despesas,
+            })));
         }
 
         setLoading(false);
@@ -217,13 +235,85 @@ export default function DashboardPage() {
             )}
 
             {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <KpiCard title="Renda Bruta" value={rendaBruta} icon={<TrendingUp className="w-5 h-5" />} color="text-foreground/80" showValues={showValues} />
-                <KpiCard title="Líquido (p/ Gastos)" value={rendaLiquida} icon={<ArrowUpCircle className="w-5 h-5" />} color="text-brand-green" bgColor="bg-brand-green/10" showValues={showValues} />
-                <KpiCard title="Despesas Totais" value={despesasTotais} icon={<ArrowDownCircle className="w-5 h-5" />} color="text-brand-red" bgColor="bg-brand-red/10" showValues={showValues} />
-                <KpiCard title="Sobra do Mês" value={sobraMes} icon={<Banknote className="w-5 h-5" />} color={sobraMes >= 0 ? "text-brand-blue" : "text-brand-red"} bgColor={sobraMes >= 0 ? "bg-brand-blue/10" : "bg-brand-red/10"} showValues={showValues} />
-                <KpiCard title="Fundos Total (Todos meses)" value={fundosTotal} icon={<PiggyBank className="w-5 h-5" />} color="text-brand-yellow" bgColor="bg-brand-yellow/10" showValues={showValues} />
-            </div>
+            {(() => {
+                const allCards: Record<string, { title: string, value: number, icon: React.ReactNode, color: string, bgColor?: string }> = {
+                    renda_bruta: { title: "Renda Bruta", value: rendaBruta, icon: <TrendingUp className="w-5 h-5" />, color: "text-foreground/80" },
+                    liquido: { title: "Líquido (p/ Gastos)", value: rendaLiquida, icon: <ArrowUpCircle className="w-5 h-5" />, color: "text-brand-green", bgColor: "bg-brand-green/10" },
+                    despesas: { title: "Despesas Totais", value: despesasTotais, icon: <ArrowDownCircle className="w-5 h-5" />, color: "text-brand-red", bgColor: "bg-brand-red/10" },
+                    sobra: { title: "Sobra do Mês", value: sobraMes, icon: <Banknote className="w-5 h-5" />, color: sobraMes >= 0 ? "text-brand-blue" : "text-brand-red", bgColor: sobraMes >= 0 ? "bg-brand-blue/10" : "bg-brand-red/10" },
+                    fundos: { title: "Fundos Total (Todos meses)", value: fundosTotal, icon: <PiggyBank className="w-5 h-5" />, color: "text-brand-yellow", bgColor: "bg-brand-yellow/10" },
+                };
+
+                const defaultLayout: DashboardCardLayout[] = [
+                    { id: 'renda_bruta', colSpan: 1 },
+                    { id: 'liquido', colSpan: 1 },
+                    { id: 'despesas', colSpan: 1 },
+                    { id: 'sobra', colSpan: 1 },
+                    { id: 'fundos', colSpan: 1 },
+                ];
+
+                const layout = dashboardLayout || defaultLayout;
+
+                const handleDragStart = (id: string) => setDraggedId(id);
+                const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+                const handleDrop = (targetId: string) => {
+                    if (!draggedId || draggedId === targetId) return;
+                    const newLayout = [...layout];
+                    const fromIdx = newLayout.findIndex(c => c.id === draggedId);
+                    const toIdx = newLayout.findIndex(c => c.id === targetId);
+                    const [moved] = newLayout.splice(fromIdx, 1);
+                    newLayout.splice(toIdx, 0, moved);
+                    setDashboardLayout(newLayout);
+                    setDraggedId(null);
+                };
+                const toggleSize = (id: string) => {
+                    const newLayout = layout.map(c => c.id === id ? { ...c, colSpan: c.colSpan === 1 ? 2 : 1 } : c);
+                    setDashboardLayout(newLayout);
+                };
+
+                return (
+                    <div>
+                        <div className="flex justify-end mb-2">
+                            <button
+                                onClick={() => setEditMode(!editMode)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${editMode ? 'bg-brand-green/10 text-brand-green border border-brand-green/30' : 'bg-white/5 text-foreground/50 hover:text-white border border-transparent'}`}
+                            >
+                                {editMode ? <Check className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
+                                {editMode ? 'Concluir' : 'Personalizar'}
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                            {layout.map(card => {
+                                const cfg = allCards[card.id];
+                                if (!cfg) return null;
+                                const spanClass = card.colSpan === 2 ? 'col-span-2' : 'col-span-2 md:col-span-2 lg:col-span-2';
+                                return (
+                                    <div
+                                        key={card.id}
+                                        draggable={editMode}
+                                        onDragStart={() => handleDragStart(card.id)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={() => handleDrop(card.id)}
+                                        className={`${card.colSpan === 2 ? 'col-span-2 md:col-span-4 lg:col-span-3' : 'col-span-2 lg:col-span-2'} ${editMode ? 'ring-1 ring-dashed ring-foreground/20 cursor-grab active:cursor-grabbing' : ''} ${draggedId === card.id ? 'opacity-40' : ''} transition-all`}
+                                    >
+                                        <KpiCard
+                                            title={cfg.title}
+                                            value={cfg.value}
+                                            icon={cfg.icon}
+                                            color={cfg.color}
+                                            bgColor={cfg.bgColor}
+                                            showValues={showValues}
+                                            editMode={editMode}
+                                            colSpan={card.colSpan}
+                                            onToggleSize={() => toggleSize(card.id)}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Month Comparison + Trend */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -245,7 +335,7 @@ export default function DashboardPage() {
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
                                     <defs>
-                                        <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
+                                        <linearGradient id="gradLiquido" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#00e5a0" stopOpacity={0.3} />
                                             <stop offset="95%" stopColor="#00e5a0" stopOpacity={0} />
                                         </linearGradient>
@@ -259,10 +349,10 @@ export default function DashboardPage() {
                                     <YAxis stroke="#64748b" tickLine={false} axisLine={false} fontSize={11} tickFormatter={(val) => showValues ? `${(val/1000).toFixed(0)}k` : ''} />
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff' }}
-                                        formatter={(value: any, name: string) => [showValues ? formatCurrency(Number(value)) : '••••••', name === 'receitas' ? 'Receitas' : 'Despesas']}
+                                        formatter={(value: any, name: string) => [showValues ? formatCurrency(Number(value)) : '••••••', name === 'liquido' ? 'Líquido p/ Gastos' : 'Despesas']}
                                         labelFormatter={(label) => formatMonth(label)}
                                     />
-                                    <Area type="monotone" dataKey="receitas" stroke="#00e5a0" strokeWidth={2} fill="url(#gradReceitas)" />
+                                    <Area type="monotone" dataKey="liquido" stroke="#00e5a0" strokeWidth={2} fill="url(#gradLiquido)" />
                                     <Area type="monotone" dataKey="despesas" stroke="#ff4d4d" strokeWidth={2} fill="url(#gradDespesas)" />
                                 </AreaChart>
                             </ResponsiveContainer>
@@ -271,7 +361,7 @@ export default function DashboardPage() {
                         )}
                     </div>
                     <div className="flex items-center gap-6 mt-3 text-xs text-foreground/60">
-                        <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded bg-[#00e5a0]"></div> Receitas</div>
+                        <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded bg-[#00e5a0]"></div> Líquido p/ Gastos</div>
                         <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded bg-[#ff4d4d]"></div> Despesas</div>
                     </div>
                 </div>
@@ -390,17 +480,31 @@ function ComparisonRow({ label, current, diff, inverted = false, showValues = tr
     );
 }
 
-function KpiCard({ title, value, icon, color, bgColor = "bg-surface", showValues = true }: { title: string, value: number, icon: any, color: string, bgColor?: string, showValues?: boolean }) {
+function KpiCard({ title, value, icon, color, bgColor = "bg-surface", showValues = true, editMode = false, colSpan = 1, onToggleSize }: { title: string, value: number, icon: any, color: string, bgColor?: string, showValues?: boolean, editMode?: boolean, colSpan?: number, onToggleSize?: () => void }) {
     return (
         <div className={`border border-borders rounded-2xl p-5 ${bgColor} bg-opacity-30 backdrop-blur-sm relative overflow-hidden group`}>
             <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full opacity-20 transition-transform group-hover:scale-150 ${color.replace('text-', 'bg-')}`}></div>
+            {editMode && (
+                <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                    <button
+                        onClick={onToggleSize}
+                        className="p-1 rounded-md bg-background/80 border border-borders text-foreground/60 hover:text-white transition-colors"
+                        title={colSpan === 1 ? 'Expandir' : 'Reduzir'}
+                    >
+                        {colSpan === 1 ? <Maximize2 className="w-3 h-3" /> : <Minimize2 className="w-3 h-3" />}
+                    </button>
+                    <div className="p-1 rounded-md bg-background/80 border border-borders text-foreground/40">
+                        <GripVertical className="w-3 h-3" />
+                    </div>
+                </div>
+            )}
             <div className={`flex items-center gap-2 mb-3 text-sm font-bold ${color}`}>
                 <div className="p-1.5 bg-background rounded-lg shadow-sm border border-borders/50">
                     {icon}
                 </div>
                 <span>{title}</span>
             </div>
-            <p className="text-2xl font-sans font-bold text-white tracking-tight">
+            <p className={`font-sans font-bold text-white tracking-tight ${colSpan === 2 ? 'text-3xl' : 'text-2xl'}`}>
                 {showValues ? formatCurrency(value) : '••••••'}
             </p>
         </div>
