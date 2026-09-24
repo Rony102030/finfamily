@@ -8,6 +8,7 @@ import { formatMonth } from "@/lib/format";
 import { ArrowUpCircle, ArrowDownCircle, Banknote, PiggyBank, TrendingUp, AlertCircle, Eye, EyeOff, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, AreaChart, Area } from 'recharts';
 import { DateRangePicker } from "@/components/DateRangePicker";
+import { carregarCaixinhas, guardadoNoMes, saldoCaixinha } from "@/lib/caixinhas";
 
 function formatCurrency(value: number) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -22,7 +23,7 @@ export default function DashboardPage() {
     const [txs, setTxs] = useState<any[]>([]);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
-    const [monthContribs, setMonthContribs] = useState<any[]>([]);
+    const [guardadoMes, setGuardadoMes] = useState(0);
     const [fundosTotal, setFundosTotal] = useState(0);
     const [prevMonthTxs, setPrevMonthTxs] = useState<any[]>([]);
     const [trendData, setTrendData] = useState<{ mes: string, liquido: number, despesas: number }[]>([]);
@@ -54,21 +55,18 @@ export default function DashboardPage() {
         const prevMonth = getPrevMonth(activeMonth);
         const last6 = getLast6Months(activeMonth);
 
-        const [currentRes, contribsRes, fundosRes, prevRes, trendRes, trendContribsRes] = await Promise.all([
+        const [currentRes, prevRes, trendRes, caixinhas] = await Promise.all([
             supabase.from('lancamentos').select('*, categorias(nome, cor, limite_mensal)').eq('user_id', user!.id).eq('mes', activeMonth),
-            supabase.from('contribuicoes').select('*').eq('user_id', user!.id).eq('mes', activeMonth),
-            supabase.from('fundos').select('*').eq('user_id', user!.id).single(),
             supabase.from('lancamentos').select('*, categorias(nome)').eq('user_id', user!.id).eq('mes', prevMonth),
             supabase.from('lancamentos').select('mes, tipo, valor').eq('user_id', user!.id).in('mes', last6),
-            supabase.from('contribuicoes').select('mes, fixo_valor, emergencia_valor, outro_valor, fundo4_valor, fundo5_valor').eq('user_id', user!.id).in('mes', last6),
+            carregarCaixinhas(user!.id, activeMonth).catch(() => null),
         ]);
 
+        // O que foi guardado nas caixinhas no mês sai do "Líquido p/ Gastos"
+        const movimentos = caixinhas?.movimentos || [];
         if (currentRes.data) setTxs(currentRes.data);
-        if (contribsRes.data) setMonthContribs(contribsRes.data);
-        if (fundosRes.data) {
-            const f = fundosRes.data;
-            setFundosTotal((f.fixo_saldo || 0) + (f.emergencia_saldo || 0) + (f.outro_saldo || 0) + (f.fundo4_saldo || 0) + (f.fundo5_saldo || 0));
-        }
+        setGuardadoMes(guardadoNoMes(movimentos, activeMonth));
+        setFundosTotal(caixinhas ? caixinhas.caixinhas.reduce((s, c) => s + saldoCaixinha(c, caixinhas.movimentos, caixinhas.gastos), 0) : 0);
         if (prevRes.data) setPrevMonthTxs(prevRes.data);
 
         if (trendRes.data) {
@@ -80,18 +78,9 @@ export default function DashboardPage() {
                 else grouped[t.mes].despesas += t.valor;
             });
 
-            const contribsByMonth: Record<string, number> = {};
-            last6.forEach(m => { contribsByMonth[m] = 0; });
-            if (trendContribsRes.data) {
-                trendContribsRes.data.forEach((c: any) => {
-                    if (!contribsByMonth[c.mes] && contribsByMonth[c.mes] !== 0) return;
-                    contribsByMonth[c.mes] += (c.fixo_valor || 0) + (c.emergencia_valor || 0) + (c.outro_valor || 0) + (c.fundo4_valor || 0) + (c.fundo5_valor || 0);
-                });
-            }
-
             setTrendData(last6.map(m => ({
                 mes: m,
-                liquido: grouped[m].receitas - contribsByMonth[m],
+                liquido: grouped[m].receitas - guardadoNoMes(movimentos, m),
                 despesas: grouped[m].despesas,
             })));
         }
@@ -103,11 +92,7 @@ export default function DashboardPage() {
     let rendaBruta = 0;
     let despesasTotais = 0;
 
-    // Fund contributions for this month to calculate liquid
-    let descontosFundos = 0;
-    monthContribs.forEach(c => {
-        descontosFundos += (c.fixo_valor || 0) + (c.emergencia_valor || 0) + (c.outro_valor || 0) + (c.fundo4_valor || 0) + (c.fundo5_valor || 0);
-    });
+    const descontosFundos = guardadoMes;
 
     const categoryTotals: Record<string, { nome: string, cor: string, valor: number, limite: number }> = {};
 
@@ -125,7 +110,7 @@ export default function DashboardPage() {
             rendaBruta += t.valor;
         } else {
             if (t.categorias && t.categorias.nome.toLowerCase() === 'fundos') {
-                // Ignore explicitly since it's already counted in monthContribs
+                // Categoria antiga "Fundos": o guardado agora vem das caixinhas
             } else if (t.categorias && (t.categorias.nome.toLowerCase().includes('emergên') || t.categorias.nome.toLowerCase().includes('emergencia'))) {
                 // Emergência: ocultar do Dashboard — vem do saldo do fundo, não do orçamento do mês
             } else {
@@ -148,7 +133,7 @@ export default function DashboardPage() {
 
     const donutData = [
         { name: 'Renda Líquida Alocada', value: rendaLiquida, color: '#00e5a0' },
-        { name: 'Fundos (Poupado)', value: descontosFundos, color: '#4d9fff' },
+        { name: 'Guardado nas caixinhas', value: descontosFundos, color: '#4d9fff' },
         { name: 'Despesas', value: despesasTotais, color: '#ff4d4d' }
     ].filter(d => d.value > 0);
 
@@ -237,7 +222,7 @@ export default function DashboardPage() {
                 <KpiCard title="Líquido (p/ Gastos)" value={rendaLiquida} icon={<ArrowUpCircle className="w-5 h-5" />} color="text-brand-green" bgColor="bg-brand-green/10" showValues={showValues} />
                 <KpiCard title="Despesas Totais" value={despesasTotais} icon={<ArrowDownCircle className="w-5 h-5" />} color="text-brand-red" bgColor="bg-brand-red/10" showValues={showValues} />
                 <KpiCard title="Sobra do Mês" value={sobraMes} icon={<Banknote className="w-5 h-5" />} color={sobraMes >= 0 ? "text-brand-blue" : "text-brand-red"} bgColor={sobraMes >= 0 ? "bg-brand-blue/10" : "bg-brand-red/10"} showValues={showValues} />
-                <KpiCard title="Fundos Total (Todos meses)" value={fundosTotal} icon={<PiggyBank className="w-5 h-5" />} color="text-brand-yellow" bgColor="bg-brand-yellow/10" showValues={showValues} />
+                <KpiCard title="Caixinhas (total guardado)" value={fundosTotal} icon={<PiggyBank className="w-5 h-5" />} color="text-brand-yellow" bgColor="bg-brand-yellow/10" showValues={showValues} />
             </div>
 
             {/* Month Comparison + Trend */}

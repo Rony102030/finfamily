@@ -10,7 +10,6 @@ import {
     LayoutDashboard,
     Wallet,
     PiggyBank,
-    Target,
     Repeat,
     BarChart2,
     Settings,
@@ -19,7 +18,6 @@ import {
     ChevronRight,
     Briefcase,
     Bell,
-    SlidersHorizontal,
     Drumstick,
     Lock
 } from "lucide-react";
@@ -90,9 +88,7 @@ export function Sidebar({ className }: { className?: string }) {
             items: [
                 { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
                 { href: "/lancamentos", label: "Lançamentos", icon: Wallet },
-                { href: "/fundos", label: "Fundos", icon: PiggyBank },
-                { href: "/fundos/configuracao", label: "Conf. Fundos", icon: SlidersHorizontal, sub: true },
-                { href: "/metas", label: "Metas", icon: Target },
+                { href: "/caixinhas", label: "Caixinhas", icon: PiggyBank },
                 { href: "/recorrentes", label: "Recorrentes", icon: Repeat },
             ],
         },
@@ -190,7 +186,7 @@ export function Sidebar({ className }: { className?: string }) {
                             <p className="px-3 mb-1.5 text-[10px] uppercase font-bold text-foreground/40 tracking-wider">{section.label}</p>
                         )}
                         {section.items.map((link) => {
-                            const isActive = pathname === link.href || (pathname !== "/dashboard" && pathname.startsWith(link.href) && link.href !== "/fundos");
+                            const isActive = pathname === link.href || (pathname !== "/dashboard" && pathname.startsWith(link.href));
                             return (
                                 <Link
                                     key={link.href}

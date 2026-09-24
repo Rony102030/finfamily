@@ -13,6 +13,14 @@ const nextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },
+    // Fundos, Conf. Fundos, Emergência e Metas viraram Caixinhas
+    async redirects() {
+        return [
+            { source: '/fundos', destination: '/caixinhas', permanent: false },
+            { source: '/fundos/:path*', destination: '/caixinhas', permanent: false },
+            { source: '/metas', destination: '/caixinhas', permanent: false },
+        ];
+    },
 };
 
 export default withPWA(nextConfig);
