@@ -11,9 +11,10 @@ interface TransactionModalProps {
     onClose: () => void;
     onSuccess?: () => void;
     transactionToEdit?: any;
+    tipoInicial?: 'despesa' | 'renda';
 }
 
-export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit }: TransactionModalProps) {
+export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit, tipoInicial }: TransactionModalProps) {
     const { user } = useAuth();
     const { userConfig } = useAppStore();
 
@@ -73,10 +74,11 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                     }
                 } else {
                     resetForm();
+                    if (tipoInicial) setType(tipoInicial);
                 }
             });
         }
-    }, [isOpen, user, transactionToEdit]);
+    }, [isOpen, user, transactionToEdit, tipoInicial]);
 
     const loadSupportData = async () => {
         // Run unawaited to speed up
