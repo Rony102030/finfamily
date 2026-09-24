@@ -63,13 +63,13 @@ export default function NegocioPage() {
                 {carregando && <div className="p-8 text-foreground/50 animate-pulse text-center">Carregando...</div>}
 
                 {!carregando && erro === 'SEM_TABELAS' && (
-                    <div className="bg-cards border border-brand-yellow/40 rounded-2xl p-6 text-sm text-foreground/80 space-y-2">
+                    <div className="bg-cards border border-brand-yellow/40 rounded-2xl p-4 sm:p-6 text-sm text-foreground/80 space-y-2">
                         <p className="font-bold text-white">Falta criar as tabelas do negócio no banco.</p>
                         <p>Rode o arquivo <code className="text-brand-yellow">migration_hora_do_frango.sql</code> no Supabase (SQL Editor) e recarregue esta página.</p>
                     </div>
                 )}
                 {!carregando && erro && erro !== 'SEM_TABELAS' && (
-                    <div className="bg-cards border border-brand-red/40 rounded-2xl p-6 text-sm text-brand-red">Erro ao carregar: {erro}</div>
+                    <div className="bg-cards border border-brand-red/40 rounded-2xl p-4 sm:p-6 text-sm text-brand-red">Erro ao carregar: {erro}</div>
                 )}
 
                 {!carregando && data && user && (

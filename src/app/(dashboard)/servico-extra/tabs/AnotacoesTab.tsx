@@ -105,7 +105,7 @@ export function AnotacoesTab() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Form column */}
                 <div className="lg:col-span-1">
-                    <form onSubmit={handleSave} className="bg-cards border border-borders rounded-2xl p-6 space-y-4 sticky top-24">
+                    <form onSubmit={handleSave} className="bg-cards border border-borders rounded-2xl p-4 sm:p-6 space-y-4 sticky top-24">
                         <div className="flex items-center justify-between">
                             <h3 className="font-heading font-bold text-white text-lg">
                                 {isEditingId ? 'Editar Anotação' : 'Nova Anotação'}
@@ -169,7 +169,7 @@ export function AnotacoesTab() {
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {notas.map(nota => (
-                                <div key={nota.id} className="bg-cards border border-borders rounded-xl p-5 flex flex-col group relative overflow-hidden transition-all hover:border-brand-blue/50 min-h-[160px]">
+                                <div key={nota.id} className="bg-cards border border-borders rounded-xl p-4 sm:p-5 flex flex-col group relative overflow-hidden transition-all hover:border-brand-blue/50 min-h-[160px]">
                                     <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button 
                                             onClick={() => handleEdit(nota)}

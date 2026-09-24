@@ -283,9 +283,9 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-cards border border-borders rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-                <div className="flex items-center justify-between p-6 border-b border-borders">
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-borders">
                     <h2 className="text-xl font-heading font-bold text-white">
                         {transactionToEdit ? 'Editar Lançamento' : 'Novo Lançamento'}
                     </h2>
@@ -294,7 +294,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                     </button>
                 </div>
 
-                <div className="p-6 overflow-y-auto custom-scrollbar">
+                <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
                     {/* Type Toggle */}
                     <div className="flex bg-surface rounded-xl p-1 mb-6 border border-borders relative">
                         <button
@@ -409,7 +409,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                     </form>
                 </div>
 
-                <div className="p-6 border-t border-borders bg-surface/50">
+                <div className="p-4 sm:p-6 border-t border-borders bg-surface/50">
                     <button
                         form="tx-form"
                         type="submit"

@@ -111,7 +111,7 @@ export default function PerfilPage() {
 
     const inicial = (meta.display_name || user?.email || "U").charAt(0).toUpperCase();
     const desbloqueadas = j.conquistas.filter(c => c.progresso >= 1).length;
-    const card = "bg-cards border border-borders rounded-2xl p-5";
+    const card = "bg-cards border border-borders rounded-2xl p-4 sm:p-5";
 
     return (
         <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in duration-500">
@@ -145,7 +145,7 @@ export default function PerfilPage() {
             </section>
 
             {/* Frase do dia */}
-            <section className="rounded-2xl p-5 border flex gap-3" style={{ background: 'rgba(255,201,77,0.06)', borderColor: 'rgba(255,201,77,0.3)' }}>
+            <section className="rounded-2xl p-4 sm:p-5 border flex gap-3" style={{ background: 'rgba(255,201,77,0.06)', borderColor: 'rgba(255,201,77,0.3)' }}>
                 <Quote className="w-6 h-6 text-brand-yellow flex-shrink-0" />
                 <div>
                     <p className="text-xs uppercase font-bold tracking-wider text-brand-yellow mb-1">Frase do dia</p>

@@ -247,7 +247,7 @@ export default function LancamentosPage() {
             </header>
 
             {/* Resumo */}
-            <section className={`${card} p-4 grid grid-cols-3 gap-3`}>
+            <section className={`${card} p-3 sm:p-4 grid grid-cols-3 gap-2 sm:gap-3`}>
                 <Resumo rotulo="Receitas" valor={receitas} cor="text-brand-green" />
                 <Resumo rotulo="Despesas" valor={despesas} cor="text-brand-red" />
                 <Resumo rotulo={temFiltro ? "Saldo do filtro" : "Sobra do mês"} valor={saldo} cor={saldo < 0 ? "text-brand-red" : "text-white"} />
@@ -342,7 +342,7 @@ export default function LancamentosPage() {
                     </div>
                 ) : porDia.map(g => (
                     <div key={g.data}>
-                        <div className="flex justify-between items-center px-4 pt-4 pb-1.5 text-xs">
+                        <div className="flex justify-between items-center px-3 sm:px-4 pt-4 pb-1.5 text-xs">
                             <span className="font-bold text-white capitalize flex items-center gap-2">
                                 {selecionando && (() => {
                                     const todos = g.itens.every(t => selecionados.has(t.id));
@@ -432,7 +432,7 @@ function Linha({ t, aberto, selecao, onToggle, onEditar, onDuplicar, onStatus, o
 
     return (
         <div className={aberto ? "bg-white/[0.03]" : ""}>
-            <button onClick={onToggle} className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/[0.03] transition-colors ${selecao ? "bg-white/[0.04]" : ""}`}>
+            <button onClick={onToggle} className={`w-full flex items-center gap-3 px-3 sm:px-4 py-2.5 text-left hover:bg-white/[0.03] transition-colors ${selecao ? "bg-white/[0.04]" : ""}`}>
                 {selecao !== undefined && (
                     <span className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${selecao ? "bg-brand-green border-brand-green text-background" : "border-foreground/30"}`}>
                         {selecao && <Check className="w-3.5 h-3.5" />}
@@ -455,7 +455,7 @@ function Linha({ t, aberto, selecao, onToggle, onEditar, onDuplicar, onStatus, o
                 </span>
             </button>
             {aberto && (
-                <div className="flex flex-wrap gap-2 px-4 pb-3 pl-[68px]">
+                <div className="flex flex-wrap gap-2 px-3 sm:px-4 pb-3 pl-[64px] sm:pl-[68px]">
                     <Acao onClick={onEditar} icone={<Pencil className="w-3.5 h-3.5" />}>Editar</Acao>
                     <Acao onClick={onDuplicar} icone={<Copy className="w-3.5 h-3.5" />}>Duplicar</Acao>
                     <Acao onClick={onStatus} icone={t.status === 'pago' ? <Clock className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}>
@@ -506,8 +506,8 @@ function LoteModal({ tipo, opcoes, itens, onClose, onAplicar }: {
     const select = "w-full bg-background border border-borders rounded-xl px-3 py-2.5 text-white outline-none focus:border-brand-green";
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-cards border border-borders rounded-2xl w-full max-w-md p-5 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-cards border border-borders rounded-2xl w-full max-w-md p-4 sm:p-5 space-y-4" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-heading font-bold text-white">{tipo === 'categoria' ? "Mudar categoria" : "Mudar carteira"}</h2>
                     <button onClick={onClose} className="p-1 text-foreground/50 hover:text-white"><X className="w-5 h-5" /></button>

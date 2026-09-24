@@ -27,13 +27,13 @@ export const n = (s: string) => {
 
 export function Modal({ titulo, onClose, children, largo = false }: { titulo: ReactNode; onClose: () => void; children: ReactNode; largo?: boolean }) {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
             <div className={`bg-cards border border-borders rounded-2xl w-full ${largo ? "max-w-2xl" : "max-w-lg"} shadow-2xl max-h-[90vh] flex flex-col`} onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between p-5 border-b border-borders">
+                <div className="flex items-center justify-between p-4 sm:p-5 border-b border-borders">
                     <h2 className="text-lg font-heading font-bold text-white">{titulo}</h2>
                     <button onClick={onClose} className="p-2 text-foreground/50 hover:text-white rounded-lg hover:bg-white/5"><X className="w-5 h-5" /></button>
                 </div>
-                <div className="p-5 overflow-y-auto custom-scrollbar">{children}</div>
+                <div className="p-4 sm:p-5 overflow-y-auto custom-scrollbar">{children}</div>
             </div>
         </div>
     );

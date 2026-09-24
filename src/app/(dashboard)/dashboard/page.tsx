@@ -186,7 +186,7 @@ export default function DashboardPage() {
 
     const nome = user?.user_metadata?.display_name;
     const alertasOrcamento = categorias.filter(c => c.limite > 0 && c.valor >= c.limite * 0.8).length;
-    const card = "bg-cards border border-borders rounded-2xl p-5";
+    const card = "bg-cards border border-borders rounded-2xl p-4 sm:p-5";
 
     return (
         <div className="space-y-5 animate-in fade-in duration-500 max-w-6xl mx-auto">

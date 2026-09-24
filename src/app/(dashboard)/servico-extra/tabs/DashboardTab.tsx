@@ -142,7 +142,7 @@ export function DashboardTab() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Formulário */}
                 <div className="lg:col-span-1">
-                    <form onSubmit={handleSubmit} className="bg-cards border border-borders rounded-2xl p-6 space-y-4 sticky top-24">
+                    <form onSubmit={handleSubmit} className="bg-cards border border-borders rounded-2xl p-4 sm:p-6 space-y-4 sticky top-24">
                         <div className="flex items-center justify-between">
                             <h3 className="font-heading font-bold text-white text-lg">
                                 {editingId ? 'Editar Registro' : 'Novo Registro'}
@@ -285,7 +285,7 @@ export function DashboardTab() {
 
 function KpiCard({ title, value, icon, color, bgColor }: { title: string, value: number, icon: any, color: string, bgColor: string }) {
     return (
-        <div className={`border border-borders rounded-2xl p-5 ${bgColor} bg-opacity-30 backdrop-blur-sm relative overflow-hidden group`}>
+        <div className={`border border-borders rounded-2xl p-4 sm:p-5 ${bgColor} bg-opacity-30 backdrop-blur-sm relative overflow-hidden group`}>
             <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full opacity-20 transition-transform group-hover:scale-150 ${color.replace('text-', 'bg-')}`}></div>
             <div className={`flex items-center justify-between mb-3 text-sm font-bold ${color}`}>
                 <span className="text-white/90">{title}</span>

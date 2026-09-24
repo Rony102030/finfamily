@@ -183,7 +183,7 @@ export default function RelatoriosPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-cards border border-borders rounded-2xl p-6">
+                <div className="lg:col-span-2 bg-cards border border-borders rounded-2xl p-4 sm:p-6">
                     <h3 className="font-heading font-bold text-white mb-6 text-lg">Receitas x Despesas ({periodo === 'ano' ? ano : `${mes}/${ano}`})</h3>
                     <div className="h-[400px]">
                         {chartData.length > 0 ? (
@@ -210,7 +210,7 @@ export default function RelatoriosPage() {
                     </div>
                 </div>
 
-                <div className="bg-cards border border-borders rounded-2xl p-6">
+                <div className="bg-cards border border-borders rounded-2xl p-4 sm:p-6">
                     <h3 className="font-heading font-bold text-white mb-6 text-lg">Gastos por Categoria</h3>
                     {despesasCategoria.length > 0 ? (
                         <div className="space-y-3">
@@ -231,7 +231,7 @@ export default function RelatoriosPage() {
 
             {/* Parcelas Restantes Section */}
             {parceladasRestantes.length > 0 && (
-                <div className="bg-cards border border-borders rounded-2xl p-6 mt-6">
+                <div className="bg-cards border border-borders rounded-2xl p-3 sm:p-6 mt-6">
                     <h3 className="font-heading font-bold text-white mb-6 text-lg">Despesas Parceladas no Período</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {Object.values(parceladasRestantes.reduce((acc: any, t: any) => {
@@ -243,7 +243,7 @@ export default function RelatoriosPage() {
                         }, {})).map((t: any) => {
                             const restantes = t.parcela_total - t.parcela_atual;
                             return (
-                                <div key={t.id} className="bg-surface border border-brand-blue/30 rounded-xl p-4 flex flex-col justify-between hover:border-brand-blue transition-colors">
+                                <div key={t.id} className="bg-surface border border-brand-blue/30 rounded-xl p-3 sm:p-4 flex flex-col justify-between hover:border-brand-blue transition-colors">
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
                                             <p className="font-bold text-white text-sm">{t.descricao.replace(/\s\(\d+\/\d+\)$/, '')}</p>

@@ -112,7 +112,7 @@ export function LembreteSemanal({ userId }: { userId: string }) {
     const podeEscolher = estado === 'ativado' || estado === 'desativado';
 
     return (
-        <section className="bg-cards border border-borders rounded-2xl p-5">
+        <section className="bg-cards border border-borders rounded-2xl p-4 sm:p-5">
             <div className="flex items-center justify-between gap-2">
                 <p className="text-xs uppercase font-bold tracking-wider text-foreground/60">Lembrete semanal</p>
                 {estado === 'ativado' && <span className="text-xs font-bold text-brand-green flex items-center gap-1"><Bell className="w-3.5 h-3.5" />Ativado neste aparelho</span>}

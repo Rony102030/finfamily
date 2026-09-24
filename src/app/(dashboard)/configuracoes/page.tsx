@@ -53,7 +53,7 @@ export default function ConfiguracoesPage() {
             </div>
 
             {/* Tab Content */}
-            <div className="bg-cards border border-borders rounded-2xl p-6 min-h-[400px]">
+            <div className="bg-cards border border-borders rounded-2xl p-3 sm:p-6 min-h-[400px]">
                 {activeTab === 'carteiras' && <CarteirasTab />}
                 {activeTab === 'categorias' && <CategoriasTab />}
                 {activeTab === 'subcategorias' && <SubcategoriasTab />}

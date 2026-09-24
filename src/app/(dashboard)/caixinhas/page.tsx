@@ -28,7 +28,7 @@ export default function CaixinhasPage() {
 
     if (carregando) return <div className="p-8 text-foreground/50 animate-pulse">Carregando caixinhas...</div>;
     if (erro === 'SEM_TABELAS') return (
-        <div className="bg-cards border border-brand-yellow/40 rounded-2xl p-6 text-sm text-foreground/80 max-w-xl">
+        <div className="bg-cards border border-brand-yellow/40 rounded-2xl p-4 sm:p-6 text-sm text-foreground/80 max-w-xl">
             <p className="font-bold text-white">Falta criar as caixinhas no banco.</p>
             <p>Rode o arquivo <code className="text-brand-yellow">migration_caixinhas.sql</code> no Supabase (SQL Editor) e recarregue.</p>
         </div>
@@ -123,7 +123,7 @@ function Card({ c, d, abrir }: { c: Caixinha; d: DadosCaixinhas; abrir: (p: Pain
     }
 
     return (
-        <div className="bg-cards border border-borders rounded-2xl p-5 flex flex-col gap-3">
+        <div className="bg-cards border border-borders rounded-2xl p-4 sm:p-5 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${emerg ? "bg-brand-blue/15 text-brand-blue" : "bg-brand-green/15 text-brand-green"}`}>

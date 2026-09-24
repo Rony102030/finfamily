@@ -115,13 +115,13 @@ export default function RecorrentesPage() {
                 </p>
             </header>
 
-            <div className="bg-cards border border-borders rounded-2xl p-6">
+            <div className="bg-cards border border-borders rounded-2xl p-3 sm:p-6">
                 <h3 className="font-heading font-bold text-white mb-6 text-lg">Pendentes para este mês</h3>
 
                 {pendentes.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {pendentes.map(tx => (
-                            <div key={tx.id} className="bg-surface border border-brand-blue/30 rounded-xl p-5 hover:border-brand-blue transition-colors relative overflow-hidden group">
+                            <div key={tx.id} className="bg-surface border border-brand-blue/30 rounded-xl p-3 sm:p-5 hover:border-brand-blue transition-colors relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-brand-blue/5 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
