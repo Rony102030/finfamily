@@ -7,6 +7,7 @@ import { useAppStore } from "@/store";
 import { formatCurrency } from "@/lib/format";
 import { carregarCaixinhas, DadosCaixinhas } from "@/lib/caixinhas";
 import { calcularJornada, fraseDoDia, LancamentoJornada } from "@/lib/jornada";
+import { LembreteSemanal } from "@/components/LembreteSemanal";
 import {
     Camera, Check, Flame, Pencil, List, Sun, Trophy, Crown, PiggyBank, Target, ShieldCheck, Award, Quote, Trash2, Loader2,
 } from "lucide-react";
@@ -163,6 +164,8 @@ export default function PerfilPage() {
                 </div>
                 <p className="text-xs text-foreground/50 mt-2">Aparece no topo do Dashboard para lembrar o motivo de tudo isso.</p>
             </section>
+
+            {user && <LembreteSemanal userId={user.id} />}
 
             {carregando ? <div className="p-6 text-foreground/50 animate-pulse">Calculando sua jornada...</div> : (
                 <>
