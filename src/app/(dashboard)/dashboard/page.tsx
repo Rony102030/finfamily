@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { formatMonth } from "@/lib/format";
-import { Eye, EyeOff, Plus, ArrowUpCircle, PiggyBank, List, TrendingUp, TrendingDown, ShieldCheck, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Plus, ArrowUpCircle, PiggyBank, List, TrendingUp, TrendingDown, ShieldCheck, ChevronRight, Target } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, CartesianGrid, LabelList } from 'recharts';
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { TransactionModal } from "@/components/TransactionModal";
@@ -180,6 +180,11 @@ export default function DashboardPage() {
             <header className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <p className="text-sm text-foreground/60">{nome ? `Olá, ${nome}` : "Olá"}</p>
+                    {user?.user_metadata?.porque && (
+                        <Link href="/perfil" className="text-xs text-brand-yellow hover:underline flex items-center gap-1 mt-0.5">
+                            <Target className="w-3.5 h-3.5" /> {user.user_metadata.porque}
+                        </Link>
+                    )}
                     <div className="flex items-center gap-2">
                         <h1 className="text-2xl font-heading font-bold text-white tracking-tight">{formatMonth(activeMonth)}</h1>
                         <button onClick={() => setShowValues(!showValues)} className="p-1.5 rounded-lg text-foreground/60 hover:text-white hover:bg-white/5" title={showValues ? "Ocultar valores" : "Mostrar valores"}>

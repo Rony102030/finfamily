@@ -5,13 +5,12 @@ import { CarteirasTab } from "./tabs/CarteirasTab";
 import { CategoriasTab } from "./tabs/CategoriasTab";
 import { FontesTab } from "./tabs/FontesTab";
 import { SubcategoriasTab } from "./tabs/SubcategoriasTab";
-import { PerfilTab } from "./tabs/PerfilTab";
+import Link from "next/link";
 import { Settings } from "lucide-react";
 
-type TabType = 'perfil' | 'carteiras' | 'categorias' | 'subcategorias' | 'fontes';
+type TabType = 'carteiras' | 'categorias' | 'subcategorias' | 'fontes';
 
 const tabs: { id: TabType; label: string }[] = [
-    { id: 'perfil', label: 'Perfil' },
     { id: 'carteiras', label: 'Carteiras' },
     { id: 'categorias', label: 'Categorias' },
     { id: 'subcategorias', label: 'Subcategorias' },
@@ -32,7 +31,7 @@ export default function ConfiguracoesPage() {
                         Configurações
                     </h1>
                     <p className="text-sm text-foreground/60">
-                        Gerencie suas contas, categorias e fundos.
+                        Gerencie suas carteiras, categorias e fontes de renda. Nome e foto ficam no <Link href="/perfil" className="text-brand-green hover:underline">seu perfil</Link>.
                     </p>
                 </div>
             </header>
@@ -55,7 +54,6 @@ export default function ConfiguracoesPage() {
 
             {/* Tab Content */}
             <div className="bg-cards border border-borders rounded-2xl p-6 min-h-[400px]">
-                {activeTab === 'perfil' && <PerfilTab />}
                 {activeTab === 'carteiras' && <CarteirasTab />}
                 {activeTab === 'categorias' && <CategoriasTab />}
                 {activeTab === 'subcategorias' && <SubcategoriasTab />}

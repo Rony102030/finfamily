@@ -229,10 +229,14 @@ export function Sidebar({ className }: { className?: string }) {
 
                 {/* User / Logout */}
                 <div className="flex items-center justify-between px-2">
-                    <Link href="/configuracoes" className="flex flex-col hover:opacity-80 transition-opacity" title="Editar Perfil">
-                        <div className="w-8 h-8 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center text-brand-green font-bold text-sm mb-1">
-                            {user?.user_metadata?.display_name ? user.user_metadata.display_name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || "U")}
-                        </div>
+                    <Link href="/perfil" className="flex flex-col hover:opacity-80 transition-opacity" title="Meu perfil">
+                        {user?.user_metadata?.avatar_url ? (
+                            <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover border border-brand-green mb-1" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-brand-green/20 border border-brand-green/30 flex items-center justify-center text-brand-green font-bold text-sm mb-1">
+                                {user?.user_metadata?.display_name ? user.user_metadata.display_name.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || "U")}
+                            </div>
+                        )}
                         <span className="text-xs font-bold text-white truncate max-w-[140px]">
                             {user?.user_metadata?.display_name || user?.email?.charAt(0).toUpperCase() || "Usuário"}
                         </span>
