@@ -9,7 +9,7 @@ export const btnSecundario = "text-sm font-medium py-2 px-3 rounded-lg border bo
 
 export function Card({ titulo, extra, children, className = "" }: { titulo?: ReactNode; extra?: ReactNode; children: ReactNode; className?: string }) {
     return (
-        <section className={`bg-cards border border-borders rounded-2xl p-4 sm:p-5 ${className}`}>
+        <section className={`secao ${className}`}>
             {(titulo || extra) && (
                 <div className="flex items-center justify-between gap-3 mb-4">
                     {titulo && <h3 className="font-heading font-bold text-white text-lg">{titulo}</h3>}
@@ -23,7 +23,7 @@ export function Card({ titulo, extra, children, className = "" }: { titulo?: Rea
 
 export function Numero({ label, valor, sub, cor = "text-white", destaque = false }: { label: string; valor: ReactNode; sub?: ReactNode; cor?: string; destaque?: boolean }) {
     return (
-        <div className={`border border-borders rounded-2xl p-4 sm:p-5 bg-cards ${destaque ? "md:col-span-2 lg:col-span-1" : ""}`}>
+        <div className={`pb-4 border-b border-borders ${destaque ? "md:col-span-2 lg:col-span-1" : ""}`}>
             <p className="text-xs uppercase font-bold tracking-wider text-foreground/50">{label}</p>
             <p className={`mt-2 font-bold tracking-tight ${destaque ? "text-3xl" : "text-2xl"} ${cor}`}>{valor}</p>
             {sub && <p className="mt-1 text-xs text-foreground/60">{sub}</p>}

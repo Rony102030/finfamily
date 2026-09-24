@@ -30,13 +30,13 @@ export default function DashboardLayout({
         <ProtectRoute>
             <div className="flex h-screen overflow-hidden bg-background">
                 {/* Sidebar desktop */}
-                <Sidebar className="w-[230px] flex-shrink-0 hidden md:flex border-r border-borders bg-surface" />
+                <Sidebar className="w-[230px] flex-shrink-0 hidden md:flex border-r border-borders bg-background" />
 
                 {/* Sidebar mobile (Overlay) */}
                 {mobileMenuOpen && (
                     <div className="fixed inset-0 z-50 md:hidden flex">
                         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}></div>
-                        <div className="relative w-[280px] h-full bg-surface shadow-2xl">
+                        <div className="relative w-[280px] h-full bg-background border-r border-borders">
                             <Sidebar className="w-full h-full border-r border-borders" />
                         </div>
                     </div>
@@ -45,7 +45,7 @@ export default function DashboardLayout({
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col h-screen overflow-y-auto w-full relative">
                     {/* Mobile Header */}
-                    <header className="md:hidden flex items-center justify-between px-3 py-4 sm:p-4 border-b border-borders bg-surface/50 backdrop-blur-md sticky top-0 z-40">
+                    <header className="md:hidden flex items-center justify-between px-3 py-4 sm:p-4 border-b border-borders bg-background sticky top-0 z-40">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-brand-green/20 flex items-center justify-center">
                                 <Wallet className="w-5 h-5 text-brand-green" />

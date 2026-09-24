@@ -45,13 +45,13 @@ export default function NegocioPage() {
                 </p>
             </header>
 
-            <div className="flex gap-2 p-1 bg-surface border border-borders rounded-xl overflow-x-auto custom-scrollbar">
+            <div className="flex gap-2 p-1 bg-surface rounded-2xl overflow-x-auto sem-rolagem">
                 {abas.map(a => (
                     <button
                         key={a.id}
                         onClick={() => setAba(a.id)}
-                        className={`flex-1 min-w-[96px] py-2.5 px-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${aba === a.id
-                            ? "bg-brand-yellow text-background shadow-md shadow-brand-yellow/20"
+                        className={`flex-1 min-w-[96px] py-2.5 px-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${aba === a.id
+                            ? "bg-brand-yellow text-background"
                             : "text-foreground/70 hover:text-white hover:bg-white/5"}`}
                     >
                         {a.label}
@@ -63,13 +63,13 @@ export default function NegocioPage() {
                 {carregando && <div className="p-8 text-foreground/50 animate-pulse text-center">Carregando...</div>}
 
                 {!carregando && erro === 'SEM_TABELAS' && (
-                    <div className="bg-cards border border-brand-yellow/40 rounded-2xl p-4 sm:p-6 text-sm text-foreground/80 space-y-2">
+                    <div className="secao text-sm text-foreground/80 space-y-2">
                         <p className="font-bold text-white">Falta criar as tabelas do negócio no banco.</p>
                         <p>Rode o arquivo <code className="text-brand-yellow">migration_hora_do_frango.sql</code> no Supabase (SQL Editor) e recarregue esta página.</p>
                     </div>
                 )}
                 {!carregando && erro && erro !== 'SEM_TABELAS' && (
-                    <div className="bg-cards border border-brand-red/40 rounded-2xl p-4 sm:p-6 text-sm text-brand-red">Erro ao carregar: {erro}</div>
+                    <div className="secao text-sm text-brand-red">Erro ao carregar: {erro}</div>
                 )}
 
                 {!carregando && data && user && (

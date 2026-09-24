@@ -11,7 +11,7 @@ import { LembreteSemanal } from "@/components/LembreteSemanal";
 import Link from "next/link";
 import { mesDeslocado, mesDeHoje } from "@/lib/retrospectiva";
 import {
-    Camera, Check, Flame, Sparkles, Pencil, List, Sun, Trophy, Crown, PiggyBank, Target, ShieldCheck, Award, Quote, Trash2, Loader2,
+    Camera, Check, CheckCheck, Flame, Sparkles, Pencil, List, Sun, Trophy, Crown, PiggyBank, Target, ShieldCheck, Award, Quote, Trash2, Loader2,
 } from "lucide-react";
 
 const ICONES: Record<string, any> = { pencil: Pencil, list: List, sun: Sun, trophy: Trophy, crown: Crown, flame: Flame, piggy: PiggyBank, target: Target, shield: ShieldCheck, award: Award };
@@ -111,7 +111,7 @@ export default function PerfilPage() {
 
     const inicial = (meta.display_name || user?.email || "U").charAt(0).toUpperCase();
     const desbloqueadas = j.conquistas.filter(c => c.progresso >= 1).length;
-    const card = "bg-cards border border-borders rounded-2xl p-4 sm:p-5";
+    const card = "secao";
 
     return (
         <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in duration-500">
@@ -145,7 +145,7 @@ export default function PerfilPage() {
             </section>
 
             {/* Frase do dia */}
-            <section className="rounded-2xl p-4 sm:p-5 border flex gap-3" style={{ background: 'rgba(255,201,77,0.06)', borderColor: 'rgba(255,201,77,0.3)' }}>
+            <section className="secao flex gap-3">
                 <Quote className="w-6 h-6 text-brand-yellow flex-shrink-0" />
                 <div>
                     <p className="text-xs uppercase font-bold tracking-wider text-brand-yellow mb-1">Frase do dia</p>
@@ -186,7 +186,7 @@ export default function PerfilPage() {
                             {j.ultimas8.map((s, i) => (
                                 <div key={s.semana} className="flex-1 text-center">
                                     <div className={`h-8 rounded-lg flex items-center justify-center ${s.ativa ? "bg-brand-green text-background" : i === 7 ? "border border-dashed border-borders" : "bg-surface"}`}>
-                                        {s.ativa && <Check className="w-4 h-4" />}
+                                        {s.ativa && <CheckCheck className="w-4 h-4" />}
                                     </div>
                                     <p className="text-[10px] text-foreground/50 mt-1">{s.semana.slice(8, 10)}/{s.semana.slice(5, 7)}</p>
                                 </div>
@@ -235,7 +235,7 @@ export default function PerfilPage() {
                                 const ok = c.progresso >= 1;
                                 return (
                                     <button key={c.id} onClick={() => setConquistaAberta(conquistaAberta === c.id ? null : c.id)}
-                                        className="rounded-xl border p-3 text-center transition-colors bg-surface"
+                                        className="rounded-xl border p-3 text-center transition-colors"
                                         style={{ borderColor: conquistaAberta === c.id ? 'var(--brand-green)' : ok ? 'rgba(255,201,77,0.45)' : 'var(--borders)' }}>
                                         <I className={`w-6 h-6 mx-auto ${ok ? "text-brand-yellow" : "text-foreground/25"}`} />
                                         <p className={`text-[11px] mt-1.5 leading-tight ${ok ? "text-white" : "text-foreground/50"}`}>{c.titulo}</p>

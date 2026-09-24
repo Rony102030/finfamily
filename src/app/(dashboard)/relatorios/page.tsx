@@ -121,7 +121,7 @@ export default function RelatoriosPage() {
             </header>
 
             {/* Filters */}
-            <div className="bg-cards border border-borders rounded-2xl p-4 flex flex-wrap gap-4 items-end print:hidden">
+            <div className="secao flex flex-wrap gap-4 items-end print:hidden">
                 <div className="flex items-center gap-2 text-brand-green font-bold mr-2">
                     <Filter className="w-5 h-5" /> Filtros
                 </div>
@@ -183,18 +183,18 @@ export default function RelatoriosPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-cards border border-borders rounded-2xl p-4 sm:p-6">
+                <div className="lg:col-span-2 secao">
                     <h3 className="font-heading font-bold text-white mb-6 text-lg">Receitas x Despesas ({periodo === 'ano' ? ano : `${mes}/${ano}`})</h3>
                     <div className="h-[400px]">
                         {chartData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#232b3e" />
+                                    <CartesianGrid vertical={false} stroke="#1f2523" />
                                     <XAxis dataKey="name" stroke="#64748b" tickLine={false} axisLine={false} />
                                     <YAxis stroke="#64748b" tickLine={false} axisLine={false} tickFormatter={(val) => formatCurrency(val)} />
                                     <Tooltip
-                                        cursor={{ fill: '#232b3e', opacity: 0.4 }}
-                                        contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff', fontWeight: 'bold' }}
+                                        cursor={{ fill: '#1f2523', opacity: 0.5 }}
+                                        contentStyle={{ backgroundColor: '#0c0f0e', borderColor: '#1f2523', borderRadius: '12px', color: '#fff', fontWeight: 'bold' }}
                                         formatter={(value: any) => [`${formatCurrency(Number(value))}`]}
                                     />
                                     <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -210,12 +210,12 @@ export default function RelatoriosPage() {
                     </div>
                 </div>
 
-                <div className="bg-cards border border-borders rounded-2xl p-4 sm:p-6">
+                <div className="secao">
                     <h3 className="font-heading font-bold text-white mb-6 text-lg">Gastos por Categoria</h3>
                     {despesasCategoria.length > 0 ? (
                         <div className="space-y-3">
                             {despesasCategoria.map((cat: any) => (
-                                <div key={cat.nome} className="flex items-center justify-between p-3 rounded-lg bg-surface border border-borders">
+                                <div key={cat.nome} className="flex items-center justify-between py-3 border-b border-borders">
                                     <span className="font-bold text-sm text-foreground/80">{cat.nome}</span>
                                     <span className="font-sans font-bold text-brand-red">{formatCurrency(cat.valor)}</span>
                                 </div>
@@ -231,7 +231,7 @@ export default function RelatoriosPage() {
 
             {/* Parcelas Restantes Section */}
             {parceladasRestantes.length > 0 && (
-                <div className="bg-cards border border-borders rounded-2xl p-3 sm:p-6 mt-6">
+                <div className="secao mt-6">
                     <h3 className="font-heading font-bold text-white mb-6 text-lg">Despesas Parceladas no Período</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {Object.values(parceladasRestantes.reduce((acc: any, t: any) => {
@@ -243,7 +243,7 @@ export default function RelatoriosPage() {
                         }, {})).map((t: any) => {
                             const restantes = t.parcela_total - t.parcela_atual;
                             return (
-                                <div key={t.id} className="bg-surface border border-brand-blue/30 rounded-xl p-3 sm:p-4 flex flex-col justify-between hover:border-brand-blue transition-colors">
+                                <div key={t.id} className="border-b border-borders py-3 flex flex-col justify-between">
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
                                             <p className="font-bold text-white text-sm">{t.descricao.replace(/\s\(\d+\/\d+\)$/, '')}</p>

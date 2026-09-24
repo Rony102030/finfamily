@@ -28,7 +28,7 @@ export default function CaixinhasPage() {
 
     if (carregando) return <div className="p-8 text-foreground/50 animate-pulse">Carregando caixinhas...</div>;
     if (erro === 'SEM_TABELAS') return (
-        <div className="bg-cards border border-brand-yellow/40 rounded-2xl p-4 sm:p-6 text-sm text-foreground/80 max-w-xl">
+        <div className="secao text-sm text-foreground/80 max-w-xl">
             <p className="font-bold text-white">Falta criar as caixinhas no banco.</p>
             <p>Rode o arquivo <code className="text-brand-yellow">migration_caixinhas.sql</code> no Supabase (SQL Editor) e recarregue.</p>
         </div>
@@ -45,7 +45,7 @@ export default function CaixinhasPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <header className="pb-6 border-b border-borders flex flex-wrap items-end justify-between gap-4">
+            <header className="secao flex flex-wrap items-end justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-heading font-bold text-white tracking-tight flex items-center gap-2">
                         <PiggyBank className="text-brand-green w-6 h-6" /> Caixinhas
@@ -56,8 +56,8 @@ export default function CaixinhasPage() {
                         <button onClick={() => setPainel({ tipo: 'editar', caixinha: null })} className={btnSecundario}><Plus className="w-4 h-4 inline mr-1" />Nova caixinha</button>
                     </div>
                 </div>
-                <div className="text-right space-y-2">
-                    <div className="bg-brand-green/10 border border-brand-green/20 px-4 py-2 rounded-xl">
+                <div className="text-left sm:text-right space-y-1">
+                    <div>
                         <p className="text-xs text-brand-green font-bold uppercase tracking-wider">Total guardado</p>
                         <p className="text-2xl font-bold text-white">{formatCurrency(total)}</p>
                     </div>
@@ -67,7 +67,7 @@ export default function CaixinhasPage() {
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-y-5 gap-x-8">
                 {ativas.map(c => <Card key={c.id} c={c} d={d} abrir={setPainel} />)}
             </div>
 
@@ -79,7 +79,7 @@ export default function CaixinhasPage() {
                     {verArquivadas && (
                         <div className="mt-3 space-y-2">
                             {arquivadas.map(c => (
-                                <div key={c.id} className="flex items-center justify-between gap-3 bg-surface border border-borders rounded-xl px-4 py-2.5">
+                                <div key={c.id} className="flex items-center justify-between gap-3 border-b border-borders py-2.5">
                                     <p className="text-foreground/70 flex items-center gap-2"><Icone nome={c.icone} className="w-4 h-4" />{c.nome} · {formatCurrency(saldoCaixinha(c, d.movimentos, d.gastos))}</p>
                                     <button className={btnSecundario} onClick={async () => { await supabase.from('caixinhas').update({ arquivada: false }).eq('id', c.id); recarregar(); }}>
                                         <ArchiveRestore className="w-4 h-4 inline mr-1" />Reativar
@@ -123,7 +123,7 @@ function Card({ c, d, abrir }: { c: Caixinha; d: DadosCaixinhas; abrir: (p: Pain
     }
 
     return (
-        <div className="bg-cards border border-borders rounded-2xl p-4 sm:p-5 flex flex-col gap-3">
+        <div className="secao flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${emerg ? "bg-brand-blue/15 text-brand-blue" : "bg-brand-green/15 text-brand-green"}`}>

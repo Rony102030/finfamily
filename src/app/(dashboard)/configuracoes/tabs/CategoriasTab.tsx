@@ -152,7 +152,7 @@ export function CategoriasTab() {
                 )}
 
                 {items.map(item => (
-                    <div key={item.id} className={`flex flex-col md:flex-row gap-4 p-3 sm:p-4 rounded-xl border items-center justify-between transition-colors ${item.ativo ? 'bg-surface border-borders' : 'bg-surface/50 border-borders/50 opacity-60'}`}>
+                    <div key={item.id} className={`flex flex-col md:flex-row gap-4 py-3 border-b items-center justify-between transition-colors ${item.ativo ? 'border-borders' : 'border-borders/50 opacity-60'}`}>
                         {editingId === item.id ? (
                             <div className="flex flex-col md:flex-row gap-3 w-full items-center">
                                 <input

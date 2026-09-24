@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { formatMonth } from "@/lib/format";
-import { Plus, Search, SlidersHorizontal, X, Pencil, Copy, Trash2, CheckCircle2, Clock, ArrowUpCircle, Filter, ListChecks, Check, Tag as TagIcon, Wallet } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, X, Pencil, Copy, Trash2, CheckCheck, Clock, ArrowUpCircle, Filter, ListChecks, Check, Tag as TagIcon, Wallet } from "lucide-react";
 import { TransactionModal } from "@/components/TransactionModal";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { MultiSelect } from "@/components/MultiSelect";
@@ -231,8 +231,7 @@ export default function LancamentosPage() {
         return grupos;
     }, [filtered]);
 
-    const card = "bg-cards border border-borders rounded-2xl";
-
+    
     return (
         <div className="space-y-4 animate-in fade-in duration-500 max-w-4xl mx-auto">
             <header className="flex items-center justify-between gap-3">
@@ -247,7 +246,7 @@ export default function LancamentosPage() {
             </header>
 
             {/* Resumo */}
-            <section className={`${card} p-3 sm:p-4 grid grid-cols-3 gap-2 sm:gap-3`}>
+            <section className="secao grid grid-cols-3 gap-2 sm:gap-3">
                 <Resumo rotulo="Receitas" valor={receitas} cor="text-brand-green" />
                 <Resumo rotulo="Despesas" valor={despesas} cor="text-brand-red" />
                 <Resumo rotulo={temFiltro ? "Saldo do filtro" : "Sobra do mês"} valor={saldo} cor={saldo < 0 ? "text-brand-red" : "text-white"} />
@@ -275,16 +274,16 @@ export default function LancamentosPage() {
                         <ListChecks className="w-4 h-4" /><span className="hidden sm:inline">{selecionando ? "Cancelar" : "Selecionar"}</span>
                     </button>
                 </div>
-                <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-1">
+                <div className="flex gap-1 overflow-x-auto sem-rolagem p-1 bg-surface rounded-2xl">
                     {ATALHOS.map(a => (
                         <button key={a.id} onClick={() => setAtalho(a.id)}
-                            className={`text-sm px-3.5 py-1.5 rounded-full border whitespace-nowrap transition-colors ${atalho === a.id ? "bg-brand-green text-background border-brand-green font-bold" : "bg-surface border-borders text-foreground/70 hover:text-white"}`}>
+                            className={`flex-1 text-sm px-3.5 py-2 rounded-xl whitespace-nowrap transition-colors ${atalho === a.id ? "bg-brand-green text-background font-bold" : "text-foreground/80 hover:text-white"}`}>
                             {a.label}{a.id === 'pendente' && pendentes.length > 0 ? ` (${pendentes.length})` : ""}
                         </button>
                     ))}
                 </div>
                 {mostrarFiltros && (
-                    <div className={`${card} p-4 grid grid-cols-1 sm:grid-cols-2 gap-3`}>
+                    <div className="secao grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <DateRangePicker startDate={startDate} endDate={endDate} onChange={(s: string, e: string) => { setStartDate(s); setEndDate(e); }} />
                         {availableCarteiras.length > 0 && <MultiSelect placeholder="Carteiras / Bancos" options={availableCarteiras} selected={carteiraFilter} onChange={setCarteiraFilter} />}
                         {availableCategorias.length > 0 && <MultiSelect placeholder="Categorias" options={availableCategorias} selected={categoriaFilter} onChange={(s) => { setCategoriaFilter(s); setSubcategoriaFilter([]); }} />}
@@ -309,7 +308,7 @@ export default function LancamentosPage() {
 
             {/* A pagar */}
             {pendentes.length > 0 && atalho !== 'pendente' && (
-                <section className="rounded-2xl p-4 border" style={{ background: 'rgba(255,201,77,0.06)', borderColor: 'rgba(255,201,77,0.3)' }}>
+                <section className="secao">
                     <div className="flex items-center justify-between gap-2">
                         <p className="text-sm text-white font-bold flex items-center gap-2"><Clock className="w-4 h-4 text-brand-yellow" />A pagar: {pendentes.length} {pendentes.length === 1 ? "conta" : "contas"} · {formatCurrency(totalPendente)}</p>
                         <button onClick={() => setAtalho('pendente')} className="text-xs font-bold text-brand-yellow">Ver</button>
@@ -320,7 +319,7 @@ export default function LancamentosPage() {
                                 <span className="text-foreground/80 truncate">{t.data.slice(8, 10)}/{t.data.slice(5, 7)} · {t.descricao}</span>
                                 <span className="flex items-center gap-2 flex-shrink-0">
                                     <span className="text-white font-bold">{formatCurrency(t.valor)}</span>
-                                    <button onClick={() => alternarStatus(t)} className="text-xs font-bold px-2 py-1 rounded-lg border border-brand-green text-brand-green">Pago</button>
+                                    <button onClick={() => alternarStatus(t)} className="text-xs font-bold px-2 py-1 rounded-lg border border-brand-green text-brand-green flex items-center gap-1"><CheckCheck className="w-3.5 h-3.5" />Pago</button>
                                 </span>
                             </div>
                         ))}
@@ -331,7 +330,7 @@ export default function LancamentosPage() {
             {aviso && <p className="text-sm text-brand-green font-bold">{aviso}</p>}
 
             {/* Lista por dia */}
-            <section className={`${card} overflow-hidden`}>
+            <section className="-mx-3 sm:-mx-4">
                 {loading ? (
                     <div className="p-8 text-center text-foreground/50">Carregando lançamentos...</div>
                 ) : porDia.length === 0 ? (
@@ -381,7 +380,7 @@ export default function LancamentosPage() {
                         <div className="flex flex-wrap gap-2">
                             <BotaoLote disabled={!selecionados.size} onClick={() => { carregarOpcoes(); setAcaoLote('categoria'); }} icone={<TagIcon className="w-3.5 h-3.5" />}>Categoria</BotaoLote>
                             <BotaoLote disabled={!selecionados.size} onClick={() => { carregarOpcoes(); setAcaoLote('carteira'); }} icone={<Wallet className="w-3.5 h-3.5" />}>Carteira</BotaoLote>
-                            <BotaoLote disabled={!selecionados.size} onClick={() => loteStatus('pago')} icone={<CheckCircle2 className="w-3.5 h-3.5" />}>Pago</BotaoLote>
+                            <BotaoLote disabled={!selecionados.size} onClick={() => loteStatus('pago')} icone={<CheckCheck className="w-3.5 h-3.5" />}>Pago</BotaoLote>
                             <BotaoLote disabled={!selecionados.size} onClick={() => loteStatus('pendente')} icone={<Clock className="w-3.5 h-3.5" />}>Pendente</BotaoLote>
                             <BotaoLote disabled={!selecionados.size} onClick={loteExcluir} icone={<Trash2 className="w-3.5 h-3.5" />} perigo>Excluir</BotaoLote>
                         </div>
@@ -458,7 +457,7 @@ function Linha({ t, aberto, selecao, onToggle, onEditar, onDuplicar, onStatus, o
                 <div className="flex flex-wrap gap-2 px-3 sm:px-4 pb-3 pl-[64px] sm:pl-[68px]">
                     <Acao onClick={onEditar} icone={<Pencil className="w-3.5 h-3.5" />}>Editar</Acao>
                     <Acao onClick={onDuplicar} icone={<Copy className="w-3.5 h-3.5" />}>Duplicar</Acao>
-                    <Acao onClick={onStatus} icone={t.status === 'pago' ? <Clock className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}>
+                    <Acao onClick={onStatus} icone={t.status === 'pago' ? <Clock className="w-3.5 h-3.5" /> : <CheckCheck className="w-3.5 h-3.5" />}>
                         {t.status === 'pago' ? "Marcar pendente" : (renda ? "Marcar recebido" : "Marcar pago")}
                     </Acao>
                     <Acao onClick={onExcluir} icone={<Trash2 className="w-3.5 h-3.5" />} perigo>Excluir</Acao>

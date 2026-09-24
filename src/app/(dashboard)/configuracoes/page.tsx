@@ -22,7 +22,7 @@ export default function ConfiguracoesPage() {
 
     return (
         <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-500">
-            <header className="flex items-center gap-3 pb-4 border-b border-borders">
+            <header className="secao flex items-center gap-3">
                 <div className="p-2 bg-surface rounded-lg border border-borders">
                     <Settings className="w-5 h-5 text-brand-green" />
                 </div>
@@ -37,13 +37,13 @@ export default function ConfiguracoesPage() {
             </header>
 
             {/* Tabs Menu */}
-            <div className="flex gap-2 p-1 bg-surface border border-borders rounded-xl overflow-x-auto custom-scrollbar">
+            <div className="flex gap-2 p-1 bg-surface rounded-2xl overflow-x-auto sem-rolagem">
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                            ? "bg-brand-green text-background shadow-md shadow-brand-green/20"
+                        className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${activeTab === tab.id
+                            ? "bg-brand-green text-background"
                             : "text-foreground/70 hover:text-white hover:bg-white/5"
                             }`}
                     >
@@ -53,7 +53,7 @@ export default function ConfiguracoesPage() {
             </div>
 
             {/* Tab Content */}
-            <div className="bg-cards border border-borders rounded-2xl p-3 sm:p-6 min-h-[400px]">
+            <div className="min-h-[400px]">
                 {activeTab === 'carteiras' && <CarteirasTab />}
                 {activeTab === 'categorias' && <CategoriasTab />}
                 {activeTab === 'subcategorias' && <SubcategoriasTab />}

@@ -27,7 +27,7 @@ export function EstoqueTab({ d, irPara }: { d: FrangoData; irPara: (a: Aba) => v
             </div>
 
             {cobre !== null && cobre < 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-brand-yellow/10 border border-brand-yellow/40 rounded-2xl p-4 text-sm">
+                <div className="secao flex flex-wrap items-center justify-between gap-3 text-sm">
                     <p className="flex items-center gap-2 text-foreground/90"><AlertTriangle className="w-5 h-5 text-brand-yellow" /> Estoque não cobre um fim de semana. Compre até quinta.</p>
                     <button onClick={() => irPara('compras')} className={`${btnPrimario} py-2`}><Plus className="w-4 h-4" /> Registrar compra</button>
                 </div>

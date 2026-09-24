@@ -21,8 +21,8 @@ const config: Config = {
         }
       },
       fontFamily: {
-        heading: ['var(--font-syne)'],
-        sans: ['var(--font-dm-sans)'],
+        heading: ['var(--font-space)'],
+        sans: ['var(--font-space)'],
       }
     },
   },

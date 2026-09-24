@@ -55,7 +55,7 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
             </div>
 
             {estoqueBaixo && (
-                <div className="flex items-start gap-3 bg-brand-yellow/10 border border-brand-yellow/40 rounded-2xl p-4 text-sm">
+                <div className="secao flex items-start gap-3 text-sm">
                     <AlertTriangle className="w-5 h-5 text-brand-yellow flex-shrink-0 mt-0.5" />
                     <p className="text-foreground/90">
                         <b className="text-white">Estoque baixo:</b> {estoque.unidades} frangos no freezer e você assa em média {calc.mediaAssados} por semana. Compre até quinta.
@@ -101,7 +101,7 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
                             <YAxis stroke="#64748b" tickLine={false} axisLine={false} fontSize={11} width={48} tickFormatter={v => `${Math.round(v)}`} />
                             <Tooltip
                                 cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                                contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff' }}
+                                contentStyle={{ backgroundColor: '#0c0f0e', borderColor: '#1f2523', borderRadius: '12px', color: '#fff' }}
                                 formatter={(v: any, _n: any, p: any) => [`${formatBRL(Number(v))} · ${p?.payload?.vendidos ?? 0} frangos`, "Lucro"]}
                                 labelFormatter={l => `Semana de ${l}`}
                             />

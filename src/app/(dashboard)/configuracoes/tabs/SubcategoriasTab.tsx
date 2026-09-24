@@ -157,7 +157,7 @@ export function SubcategoriasTab() {
                     </div>
                 ) : (
                     subcategorias.map(sub => (
-                        <div key={sub.id} className="flex flex-col md:flex-row gap-4 p-3 sm:p-4 bg-surface border border-borders rounded-xl group hover:border-brand-green/30 transition-colors items-center justify-between">
+                        <div key={sub.id} className="flex flex-col md:flex-row gap-4 py-3 border-b border-borders group transition-colors items-center justify-between">
                             {editingId === sub.id ? (
                                 <div className="flex flex-col md:flex-row gap-3 w-full items-center">
                                     <input

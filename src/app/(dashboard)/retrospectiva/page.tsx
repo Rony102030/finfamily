@@ -21,11 +21,11 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Cor de fundo de cada tela (brilho suave no topo)
 const FUNDOS: Record<string, string> = {
-    verde: 'radial-gradient(120% 70% at 20% 0%, rgba(0,229,160,0.28), transparent 60%), #0f131a',
-    vermelho: 'radial-gradient(120% 70% at 20% 0%, rgba(255,77,77,0.28), transparent 60%), #0f131a',
-    azul: 'radial-gradient(120% 70% at 80% 0%, rgba(77,159,255,0.30), transparent 60%), #0f131a',
-    roxo: 'radial-gradient(120% 70% at 80% 0%, rgba(181,123,255,0.30), transparent 60%), #0f131a',
-    amarelo: 'radial-gradient(120% 70% at 20% 0%, rgba(255,201,77,0.26), transparent 60%), #0f131a',
+    verde: 'radial-gradient(120% 70% at 20% 0%, rgba(0,229,160,0.28), transparent 60%), #000000',
+    vermelho: 'radial-gradient(120% 70% at 20% 0%, rgba(255,77,77,0.28), transparent 60%), #000000',
+    azul: 'radial-gradient(120% 70% at 80% 0%, rgba(77,159,255,0.30), transparent 60%), #000000',
+    roxo: 'radial-gradient(120% 70% at 80% 0%, rgba(181,123,255,0.30), transparent 60%), #000000',
+    amarelo: 'radial-gradient(120% 70% at 20% 0%, rgba(255,201,77,0.26), transparent 60%), #000000',
 };
 
 export default function RetrospectivaPage() {
@@ -100,7 +100,7 @@ function Retro() {
     return (
         <div className="fixed inset-0 z-[60] bg-background flex items-center justify-center sm:p-6">
             <div className="relative w-full h-full sm:h-[min(92vh,820px)] sm:max-w-[430px] sm:rounded-3xl overflow-hidden sm:border sm:border-borders select-none"
-                style={{ background: tela ? FUNDOS[tela.fundo] : '#0f131a' }}>
+                style={{ background: tela ? FUNDOS[tela.fundo] : '#000000' }}>
 
                 {/* barras de progresso e topo */}
                 <div className="absolute top-0 inset-x-0 z-20 px-4 pt-4 pb-2" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>

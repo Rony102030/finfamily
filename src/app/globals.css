@@ -4,10 +4,11 @@
 
 @layer base {
   :root {
-    --background: #0f131a;
-    --surface: #161b27;
-    --cards: #1a202c;
-    --borders: #232b3e;
+    /* fundo preto chapado; "surface" só para campos e controles */
+    --background: #000000;
+    --surface: #0c0f0e;
+    --cards: #000000;
+    --borders: #1f2523;
     --foreground: #f8fafc;
 
     --brand-green: #00e5a0;
@@ -27,8 +28,25 @@
 body {
   color: var(--foreground);
   background-color: var(--background);
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
 }
+
+/* Seção sem caixa: conteúdo direto no fundo, separado por uma linha fina.
+   No celular a linha vai de ponta a ponta da tela (compensa o padding do <main>). */
+@layer components {
+  .secao {
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--borders);
+    margin-inline: -0.75rem;
+    padding-inline: 0.75rem;
+  }
+  @media (min-width: 640px) {
+    .secao { margin-inline: 0; padding-inline: 0; }
+  }
+}
+
+/* rolagem lateral sem barra visível (atalhos e abas) */
+.sem-rolagem { scrollbar-width: none; }
+.sem-rolagem::-webkit-scrollbar { display: none; }
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

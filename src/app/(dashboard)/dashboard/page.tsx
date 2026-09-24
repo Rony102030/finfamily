@@ -186,7 +186,7 @@ export default function DashboardPage() {
 
     const nome = user?.user_metadata?.display_name;
     const alertasOrcamento = categorias.filter(c => c.limite > 0 && c.valor >= c.limite * 0.8).length;
-    const card = "bg-cards border border-borders rounded-2xl p-4 sm:p-5";
+    const card = "secao";
 
     return (
         <div className="space-y-5 animate-in fade-in duration-500 max-w-6xl mx-auto">
@@ -212,7 +212,7 @@ export default function DashboardPage() {
             </header>
 
             {!retroFechada && (
-                <div className="rounded-2xl p-4 border flex items-center gap-3" style={{ background: 'linear-gradient(90deg, rgba(0,229,160,0.14), rgba(181,123,255,0.12))', borderColor: 'rgba(0,229,160,0.4)' }}>
+                <div className="secao flex items-center gap-3">
                     <Sparkles className="w-6 h-6 text-brand-green flex-shrink-0" />
                     <Link href={`/retrospectiva?mes=${mesPassado}`} onClick={fecharRetro} className="flex-1 min-w-0">
                         <p className="font-bold text-white">Sua retrospectiva de {nomeMes(mesPassado)} está pronta</p>
@@ -259,8 +259,7 @@ export default function DashboardPage() {
                 </section>
 
                 {/* Ritmo em uma frase */}
-                <section className="rounded-2xl p-4 border lg:col-span-3 lg:row-start-3 flex items-start gap-3 text-sm"
-                    style={diffRitmo !== null && diffRitmo > 0.05 ? { background: 'rgba(255,77,77,0.06)', borderColor: 'rgba(255,77,77,0.35)' } : { background: 'var(--cards)', borderColor: 'var(--borders)' }}>
+                <section className="secao lg:col-span-3 lg:row-start-3 flex items-start gap-3 text-sm">
                     {diffRitmo !== null && diffRitmo > 0
                         ? <TrendingUp className="w-5 h-5 text-brand-red flex-shrink-0" />
                         : <TrendingDown className="w-5 h-5 text-brand-green flex-shrink-0" />}
@@ -348,19 +347,23 @@ export default function DashboardPage() {
                     <div className="h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={ritmoData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#232b3e" />
+                                <CartesianGrid vertical={false} stroke="#1f2523" />
                                 <XAxis dataKey="dia" stroke="#64748b" tickLine={false} axisLine={false} fontSize={11} interval={4} />
-                                <YAxis stroke="#64748b" tickLine={false} axisLine={false} fontSize={11} width={40} tickFormatter={(x) => showValues ? `${(x / 1000).toFixed(1).replace('.', ',')}k` : ''} />
+                                <YAxis stroke="#64748b" tickLine={false} axisLine={false} fontSize={11} width={52} tickFormatter={(x) => showValues ? `R$${(x / 1000).toFixed(1).replace('.', ',')}k` : ''} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff' }}
+                                    contentStyle={{ backgroundColor: '#0c0f0e', borderColor: '#1f2523', borderRadius: '12px', color: '#fff' }}
                                     labelStyle={{ color: '#f8fafc', fontWeight: 700, marginBottom: 2 }}
                                     separator=": "
                                     labelFormatter={(d) => `Dia ${d}`}
                                     formatter={(x: any, n: any) => [showValues ? formatCurrency(Number(x)) : '••••••', n === 'atual' ? nomeMes(activeMonth) : nomeMes(prevMonth)]}
                                 />
                                 {liquido > 0 && <ReferenceLine y={liquido} stroke="#ffc94d" strokeDasharray="4 4" label={{ value: 'líquido p/ gastos', position: 'insideTopRight', fill: '#ffc94d', fontSize: 11 }} />}
-                                <Line type="stepAfter" dataKey="anterior" stroke="#64748b" strokeWidth={1.5} dot={false} connectNulls={false} />
-                                <Line type="stepAfter" dataKey="atual" stroke="#ff4d4d" strokeWidth={2.5} dot={false} connectNulls={false} />
+                                <Line type="linear" dataKey="anterior" stroke="#64748b" strokeWidth={1.5} dot={false} connectNulls={false} />
+                                <Line type="linear" dataKey="atual" stroke="#ff4d4d" strokeWidth={3} connectNulls={false}
+                                    activeDot={{ r: 5, fill: '#000', stroke: '#ff4d4d', strokeWidth: 2.5 }}
+                                    dot={(p: any) => (p.payload.atual !== null && (p.payload.dia % 3 === 1 || p.payload.dia === diaRef))
+                                        ? <circle key={p.key} cx={p.cx} cy={p.cy} r={4} fill="#000" stroke="#ff4d4d" strokeWidth={2.5} />
+                                        : <g key={p.key} />} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -408,7 +411,7 @@ export default function DashboardPage() {
                                 <ReferenceLine y={0} stroke="#232b3e" />
                                 <Tooltip
                                     cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                                    contentStyle={{ backgroundColor: '#0f131a', borderColor: '#232b3e', borderRadius: '12px', color: '#fff' }}
+                                    contentStyle={{ backgroundColor: '#0c0f0e', borderColor: '#1f2523', borderRadius: '12px', color: '#fff' }}
                                     labelStyle={{ color: '#f8fafc', fontWeight: 700, marginBottom: 2 }}
                                     itemStyle={{ color: '#f8fafc' }}
                                     separator=": "

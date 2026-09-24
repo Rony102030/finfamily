@@ -98,13 +98,13 @@ function ServicoExtra() {
             </header>
 
             {/* Tabs Menu */}
-            <div className="flex gap-2 p-1 bg-surface border border-borders rounded-xl overflow-x-auto custom-scrollbar">
+            <div className="flex gap-2 p-1 bg-surface rounded-2xl overflow-x-auto sem-rolagem">
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id
-                            ? "bg-brand-blue text-background shadow-md shadow-brand-blue/20"
+                        className={`flex-1 min-w-[120px] py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id
+                            ? "bg-brand-blue text-background"
                             : "text-foreground/70 hover:text-white hover:bg-white/5"
                             }`}
                     >

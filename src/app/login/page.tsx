@@ -90,7 +90,7 @@ export default function LoginPage() {
 
             {/* Form Side */}
             <div className="flex-1 flex items-center justify-center p-6 sm:p-12 border-l border-borders bg-surface/50 backdrop-blur-sm z-10">
-                <div className="w-full max-w-md space-y-8 bg-cards p-6 sm:p-8 rounded-2xl border border-borders shadow-xl relative">
+                <div className="w-full max-w-md space-y-8 sm:bg-surface p-2 sm:p-8 sm:rounded-2xl sm:border sm:border-borders relative">
                     {isResetMode && (
                         <button
                             onClick={() => {

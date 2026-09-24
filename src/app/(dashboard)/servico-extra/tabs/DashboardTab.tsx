@@ -142,7 +142,7 @@ export function DashboardTab() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Formulário */}
                 <div className="lg:col-span-1">
-                    <form onSubmit={handleSubmit} className="bg-cards border border-borders rounded-2xl p-4 sm:p-6 space-y-4 sticky top-24">
+                    <form onSubmit={handleSubmit} className="secao space-y-4 lg:sticky lg:top-24">
                         <div className="flex items-center justify-between">
                             <h3 className="font-heading font-bold text-white text-lg">
                                 {editingId ? 'Editar Registro' : 'Novo Registro'}
@@ -229,7 +229,7 @@ export function DashboardTab() {
                 <div className="lg:col-span-2 space-y-4">
                     <h3 className="font-heading font-bold text-white text-lg">Histórico de Lançamentos</h3>
                     {entries.length === 0 ? (
-                        <div className="text-center py-12 bg-cards rounded-2xl border border-dashed border-borders">
+                        <div className="text-center py-12 border-b border-borders">
                             <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Briefcase className="w-6 h-6 text-foreground/40" />
                             </div>
@@ -239,7 +239,7 @@ export function DashboardTab() {
                     ) : (
                         <div className="space-y-3">
                             {entries.map(e => (
-                                <div key={e.id} className="bg-cards border border-borders rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group">
+                                <div key={e.id} className="border-b border-borders py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group">
                                     <div className="flex items-center gap-4">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${e.tipo === 'receita' ? 'bg-brand-green/10 text-brand-green' : 'bg-brand-red/10 text-brand-red'}`}>
                                             {e.tipo === 'receita' ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
@@ -285,7 +285,7 @@ export function DashboardTab() {
 
 function KpiCard({ title, value, icon, color, bgColor }: { title: string, value: number, icon: any, color: string, bgColor: string }) {
     return (
-        <div className={`border border-borders rounded-2xl p-4 sm:p-5 ${bgColor} bg-opacity-30 backdrop-blur-sm relative overflow-hidden group`}>
+        <div className="pb-4 border-b border-borders relative overflow-hidden group">
             <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full opacity-20 transition-transform group-hover:scale-150 ${color.replace('text-', 'bg-')}`}></div>
             <div className={`flex items-center justify-between mb-3 text-sm font-bold ${color}`}>
                 <span className="text-white/90">{title}</span>

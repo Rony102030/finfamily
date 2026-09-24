@@ -105,7 +105,7 @@ export function AnotacoesTab() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Form column */}
                 <div className="lg:col-span-1">
-                    <form onSubmit={handleSave} className="bg-cards border border-borders rounded-2xl p-4 sm:p-6 space-y-4 sticky top-24">
+                    <form onSubmit={handleSave} className="secao space-y-4 lg:sticky lg:top-24">
                         <div className="flex items-center justify-between">
                             <h3 className="font-heading font-bold text-white text-lg">
                                 {isEditingId ? 'Editar Anotação' : 'Nova Anotação'}
@@ -159,7 +159,7 @@ export function AnotacoesTab() {
                 <div className="lg:col-span-2 space-y-4">
                     <h3 className="font-heading font-bold text-white text-lg">Suas Anotações</h3>
                     {notas.length === 0 ? (
-                        <div className="text-center py-12 bg-cards rounded-2xl border border-dashed border-borders">
+                        <div className="text-center py-12 border-b border-borders">
                             <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center mx-auto mb-3">
                                 <StickyNote className="w-6 h-6 text-foreground/40" />
                             </div>
@@ -169,7 +169,7 @@ export function AnotacoesTab() {
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {notas.map(nota => (
-                                <div key={nota.id} className="bg-cards border border-borders rounded-xl p-4 sm:p-5 flex flex-col group relative overflow-hidden transition-all hover:border-brand-blue/50 min-h-[160px]">
+                                <div key={nota.id} className="border-b border-borders py-4 flex flex-col group relative overflow-hidden transition-all hover:border-brand-blue/50 min-h-[160px]">
                                     <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button 
                                             onClick={() => handleEdit(nota)}
