@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { formatMonth } from "@/lib/format";
-import { Eye, EyeOff, Plus, ArrowUpCircle, PiggyBank, List, TrendingUp, TrendingDown, ShieldCheck, ChevronRight, Target } from "lucide-react";
+import { Eye, EyeOff, Plus, ArrowUpCircle, PiggyBank, List, TrendingUp, TrendingDown, ShieldCheck, ChevronRight, Target, Sparkles, X } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, CartesianGrid, LabelList } from 'recharts';
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { TransactionModal } from "@/components/TransactionModal";
@@ -60,9 +60,23 @@ export default function DashboardPage() {
     const [endDate, setEndDate] = useState("");
     const [modal, setModal] = useState<null | 'despesa' | 'renda'>(null);
     const [todasCategorias, setTodasCategorias] = useState(false);
+    const [retroFechada, setRetroFechada] = useState(true);
 
     const last6 = useMemo(() => Array.from({ length: 6 }, (_, i) => mesDeslocado(activeMonth, i - 5)), [activeMonth]);
     const prevMonth = mesDeslocado(activeMonth, -1);
+
+    // Nos 7 primeiros dias do mês, um cartão chama para a retrospectiva do mês que fechou.
+    const hojeData = new Date();
+    const mesPassado = mesDeslocado(hojeLocal().slice(0, 7), -1);
+    const chaveRetro = `ff-retro-fechada-${mesPassado}`;
+    useEffect(() => {
+        if (hojeData.getDate() > 7) return;
+        try { setRetroFechada(localStorage.getItem(chaveRetro) === "1"); } catch { setRetroFechada(false); }
+    }, [chaveRetro]);
+    const fecharRetro = () => {
+        setRetroFechada(true);
+        try { localStorage.setItem(chaveRetro, "1"); } catch { }
+    };
 
     useEffect(() => {
         if (user && activeMonth) fetchData();
@@ -196,6 +210,18 @@ export default function DashboardPage() {
                     <DateRangePicker startDate={startDate} endDate={endDate} onChange={(s: string, e: string) => { setStartDate(s); setEndDate(e); }} />
                 </div>
             </header>
+
+            {!retroFechada && (
+                <div className="rounded-2xl p-4 border flex items-center gap-3" style={{ background: 'linear-gradient(90deg, rgba(0,229,160,0.14), rgba(181,123,255,0.12))', borderColor: 'rgba(0,229,160,0.4)' }}>
+                    <Sparkles className="w-6 h-6 text-brand-green flex-shrink-0" />
+                    <Link href={`/retrospectiva?mes=${mesPassado}`} onClick={fecharRetro} className="flex-1 min-w-0">
+                        <p className="font-bold text-white">Sua retrospectiva de {nomeMes(mesPassado)} está pronta</p>
+                        <p className="text-xs text-foreground/70">Quanto sobrou, para onde foi o dinheiro e o que dá para melhorar.</p>
+                    </Link>
+                    <Link href={`/retrospectiva?mes=${mesPassado}`} onClick={fecharRetro} className="hidden sm:block text-sm font-bold py-2 px-4 rounded-xl bg-brand-green text-background">Ver agora</Link>
+                    <button onClick={fecharRetro} className="p-1.5 rounded-lg text-foreground/50 hover:text-white" title="Dispensar"><X className="w-4 h-4" /></button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Principal: quanto ainda dá pra gastar */}

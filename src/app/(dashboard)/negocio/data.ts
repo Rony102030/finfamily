@@ -39,6 +39,35 @@ async function buscar(userId: string) {
     return res.map(r => r.data || []);
 }
 
+function montarFrangoData(c: any, fixos: any[], clientes: any[], compras: any[], custos: any[], fechamentos: any[], fiados: any[], recebimentos: any[]): FrangoData {
+    return {
+        config: {
+            nome: c.nome, preco_grande: num(c.preco_grande), preco_padrao: num(c.preco_padrao),
+            kg_por_caixa: num(c.kg_por_caixa), meta_mensal: num(c.meta_mensal), template_whatsapp: c.template_whatsapp,
+        },
+        fixos: fixos.map(f => ({ ...f, valor: num(f.valor) })),
+        clientes,
+        compras: compras.map(x => ({ ...x, preco_kg: num(x.preco_kg), kg_por_caixa: num(x.kg_por_caixa), caixas: (x.caixas || []).map(Number) })),
+        custos: custos.map(x => ({ ...x, valor: num(x.valor) })),
+        fechamentos: fechamentos.map(x => ({
+            ...x,
+            preco_grande: num(x.preco_grande), preco_padrao: num(x.preco_padrao),
+            rec_dinheiro: num(x.rec_dinheiro), rec_pix: num(x.rec_pix), rec_cartao: num(x.rec_cartao),
+        })),
+        fiados: fiados.map(x => ({ ...x, valor: num(x.valor), preco_un: num(x.preco_un) })),
+        recebimentos: recebimentos.map(x => ({ ...x, valor: num(x.valor) })),
+    };
+}
+
+/** Só leitura (sem lançar fixos nem criar config): usado pela Retrospectiva. `null` se o módulo não estiver liberado. */
+export async function carregarFrangoLeitura(userId: string): Promise<FrangoData | null> {
+    const { data: acesso } = await supabase.from('negocios_acesso')
+        .select('modulo').eq('user_id', userId).eq('modulo', 'frango').maybeSingle();
+    if (!acesso) return null;
+    const [cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos] = await buscar(userId);
+    return montarFrangoData(cfg[0] || CONFIG_PADRAO, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos);
+}
+
 export function useFrangoData(userId: string | undefined) {
     const [data, setData] = useState<FrangoData | null>(null);
     const [erro, setErro] = useState<string | null>(null);
@@ -61,24 +90,7 @@ export function useFrangoData(userId: string | undefined) {
                 custos = (await supabase.from('frango_custos').select('*').eq('user_id', userId).order('created_at').limit(5000)).data || custos;
             }
 
-            const c = cfg[0];
-            setData({
-                config: {
-                    nome: c.nome, preco_grande: num(c.preco_grande), preco_padrao: num(c.preco_padrao),
-                    kg_por_caixa: num(c.kg_por_caixa), meta_mensal: num(c.meta_mensal), template_whatsapp: c.template_whatsapp,
-                },
-                fixos: fixos.map(f => ({ ...f, valor: num(f.valor) })),
-                clientes,
-                compras: compras.map(x => ({ ...x, preco_kg: num(x.preco_kg), kg_por_caixa: num(x.kg_por_caixa), caixas: (x.caixas || []).map(Number) })),
-                custos: custos.map(x => ({ ...x, valor: num(x.valor) })),
-                fechamentos: fechamentos.map(x => ({
-                    ...x,
-                    preco_grande: num(x.preco_grande), preco_padrao: num(x.preco_padrao),
-                    rec_dinheiro: num(x.rec_dinheiro), rec_pix: num(x.rec_pix), rec_cartao: num(x.rec_cartao),
-                })),
-                fiados: fiados.map(x => ({ ...x, valor: num(x.valor), preco_un: num(x.preco_un) })),
-                recebimentos: recebimentos.map(x => ({ ...x, valor: num(x.valor) })),
-            });
+            setData(montarFrangoData(cfg[0], fixos, clientes, compras, custos, fechamentos, fiados, recebimentos));
             setErro(null);
         } catch (e: any) {
             const semTabela = e?.code === '42P01' || e?.code === 'PGRST205' || /does not exist|schema cache/i.test(e?.message || '');

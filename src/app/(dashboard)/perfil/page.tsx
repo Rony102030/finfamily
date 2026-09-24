@@ -8,8 +8,10 @@ import { formatCurrency } from "@/lib/format";
 import { carregarCaixinhas, DadosCaixinhas } from "@/lib/caixinhas";
 import { calcularJornada, fraseDoDia, LancamentoJornada } from "@/lib/jornada";
 import { LembreteSemanal } from "@/components/LembreteSemanal";
+import Link from "next/link";
+import { mesDeslocado, mesDeHoje } from "@/lib/retrospectiva";
 import {
-    Camera, Check, Flame, Pencil, List, Sun, Trophy, Crown, PiggyBank, Target, ShieldCheck, Award, Quote, Trash2, Loader2,
+    Camera, Check, Flame, Sparkles, Pencil, List, Sun, Trophy, Crown, PiggyBank, Target, ShieldCheck, Award, Quote, Trash2, Loader2,
 } from "lucide-react";
 
 const ICONES: Record<string, any> = { pencil: Pencil, list: List, sun: Sun, trophy: Trophy, crown: Crown, flame: Flame, piggy: PiggyBank, target: Target, shield: ShieldCheck, award: Award };
@@ -205,6 +207,20 @@ export default function PerfilPage() {
                             <Numero valor={formatCurrency(j.totalGuardado)} rotulo="guardado nas caixinhas" cor="text-brand-blue" />
                             <Numero valor={`${j.mesesUsando} ${j.mesesUsando === 1 ? "mês" : "meses"}`} rotulo="usando o FinFamily" />
                         </div>
+                    </section>
+
+                    {/* Retrospectivas */}
+                    <section className={card}>
+                        <p className="text-xs uppercase font-bold tracking-wider text-foreground/60 mb-3 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-brand-green" />Retrospectivas</p>
+                        <div className="flex flex-wrap gap-2">
+                            {Array.from({ length: 6 }, (_, k) => mesDeslocado(mesDeHoje(), -1 - k)).map(m => (
+                                <Link key={m} href={`/retrospectiva?mes=${m}`}
+                                    className="px-3 py-1.5 rounded-full border border-borders bg-surface text-sm text-foreground/80 hover:text-white hover:border-brand-green">
+                                    {MESES[Number(m.slice(5, 7)) - 1]}{m.slice(0, 4) !== String(new Date().getFullYear()) ? ` ${m.slice(0, 4)}` : ""}
+                                </Link>
+                            ))}
+                        </div>
+                        <p className="text-xs text-foreground/50 mt-3">O resumo de cada mês que fechou: quanto sobrou, para onde foi o dinheiro e o que dá para melhorar.</p>
                     </section>
 
                     {/* Conquistas */}
