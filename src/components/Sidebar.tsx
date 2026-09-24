@@ -13,16 +13,18 @@ import {
     Target,
     Repeat,
     BarChart2,
-    Calculator,
-    Bot,
     Settings,
     LogOut,
     ChevronLeft,
     ChevronRight,
     Briefcase,
     Bell,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Drumstick,
+    Lock
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { useNegociosAcesso } from "@/lib/negocios";
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
@@ -30,6 +32,22 @@ export function Sidebar({ className }: { className?: string }) {
     const { activeMonth, setActiveMonth, userConfig } = useAppStore();
     const [showNotifications, setShowNotifications] = useState(false);
     const [hasUnreadUpdates, setHasUnreadUpdates] = useState(false);
+    const modulos = useNegociosAcesso(user?.id);
+    const [negocioNome, setNegocioNome] = useState("Hora do Frango");
+
+    useEffect(() => {
+        if (!user || !modulos?.has('frango')) return;
+        supabase.from('frango_config').select('nome').eq('user_id', user.id).maybeSingle()
+            .then(({ data }) => { if (data?.nome) setNegocioNome(data.nome); });
+    }, [user, modulos]);
+
+    // Negócios: só os módulos liberados para a conta; sem nenhum, aparece com cadeado
+    const negocioItems = modulos === null ? [] : modulos.size === 0
+        ? [{ href: "/negocio", label: "Negócios", icon: Lock }]
+        : [
+            ...(modulos.has('frango') ? [{ href: "/negocio", label: negocioNome, icon: Drumstick }] : []),
+            ...(modulos.has('servico_extra') ? [{ href: "/servico-extra", label: userConfig?.servico_extra_nome || "Serviço Extra", icon: Briefcase }] : []),
+        ];
 
     // Updates List
     const LATEST_UPDATE_VERSION = "v3-2026-03-15";
@@ -82,15 +100,11 @@ export function Sidebar({ className }: { className?: string }) {
             label: "Ferramentas",
             items: [
                 { href: "/relatorios", label: "Relatórios", icon: BarChart2 },
-                { href: "/calculadora", label: "Calculadora", icon: Calculator },
-                { href: "/antigravity", label: "FinFamily IA", icon: Bot },
             ],
         },
         {
             label: "Negócios",
-            items: [
-                { href: "/servico-extra", label: userConfig?.servico_extra_nome || "Serviço Extra", icon: Briefcase },
-            ],
+            items: negocioItems,
         },
         {
             items: [
@@ -170,7 +184,7 @@ export function Sidebar({ className }: { className?: string }) {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
-                {navSections.map((section, sIdx) => (
+                {navSections.filter(section => section.items.length > 0).map((section, sIdx) => (
                     <div key={sIdx} className={sIdx > 0 ? "pt-3 mt-3 border-t border-borders/50" : ""}>
                         {section.label && (
                             <p className="px-3 mb-1.5 text-[10px] uppercase font-bold text-foreground/40 tracking-wider">{section.label}</p>

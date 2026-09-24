@@ -9,6 +9,8 @@ import { Briefcase, Edit2, Check, X } from "lucide-react";
 
 import { DashboardTab } from "./tabs/DashboardTab";
 import { AnotacoesTab } from "./tabs/AnotacoesTab";
+import { useNegociosAcesso } from "@/lib/negocios";
+import { NegocioBloqueado } from "@/components/NegocioBloqueado";
 
 type TabType = 'dashboard' | 'anotacoes';
 
@@ -18,6 +20,14 @@ const tabs: { id: TabType; label: string }[] = [
 ];
 
 export default function ServicoExtraPage() {
+    const { user } = useAuth();
+    const modulos = useNegociosAcesso(user?.id);
+    if (modulos === null) return <div className="p-8 text-foreground/50 animate-pulse text-center">Carregando...</div>;
+    if (!modulos.has('servico_extra')) return <NegocioBloqueado />;
+    return <ServicoExtra />;
+}
+
+function ServicoExtra() {
     const { user } = useAuth();
     const { userConfig, activeMonth } = useAppStore();
 
