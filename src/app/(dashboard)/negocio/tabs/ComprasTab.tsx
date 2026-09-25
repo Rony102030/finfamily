@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Check, Edit2, Plus, Trash2, X, RotateCcw } from "lucide-react";
-import { FrangoData, Compra, Custo, CATEGORIAS_CUSTO, custoMedioHistorico, replayEstoque, limitesDoMes, hoje, dataCurta, formatBRL } from "../calc";
+import { FrangoData, Compra, Custo, CATEGORIAS_CUSTO, custoMedioHistorico, replayEstoque, limitesDoMes, hoje, dataCurta, formatBRL, agruparCaixas, textoCaixas } from "../calc";
 import { Card, CampoNumero, inputCls, labelCls, btnPrimario, btnSecundario, n, inteiro, Vazio } from "../ui";
 
 type Props = { d: FrangoData; mes: string; userId: string; recarregar: () => Promise<void> };
@@ -22,30 +22,31 @@ function CompraFrango({ d, mes, userId, recarregar }: Props) {
     const [data, setData] = useState(hoje());
     const [precoKg, setPrecoKg] = useState("");
     const [kgCaixa, setKgCaixa] = useState(String(d.config.kg_por_caixa));
-    const [caixas, setCaixas] = useState<string[]>([""]);
+    // cada linha: "X caixas com Y frangos" (ex.: 5 com 8 + 5 com 7)
+    const [grupos, setGrupos] = useState<{ qtd: string; frangos: string }[]>([{ qtd: "", frangos: "" }]);
     const [salvando, setSalvando] = useState(false);
 
-    const limpar = () => { setEditando(null); setData(hoje()); setPrecoKg(""); setKgCaixa(String(d.config.kg_por_caixa)); setCaixas([""]); };
+    const limpar = () => { setEditando(null); setData(hoje()); setPrecoKg(""); setKgCaixa(String(d.config.kg_por_caixa)); setGrupos([{ qtd: "", frangos: "" }]); };
     const carregar = (c: Compra) => {
-        setEditando(c); setData(c.data); setPrecoKg(String(c.preco_kg)); setKgCaixa(String(c.kg_por_caixa)); setCaixas(c.caixas.map(String));
+        setEditando(c); setData(c.data); setPrecoKg(String(c.preco_kg)); setKgCaixa(String(c.kg_por_caixa));
+        setGrupos(agruparCaixas(c.caixas).map(g => ({ qtd: String(g.qtd), frangos: String(g.frangos) })));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
-    const setQtdCaixas = (q: number) => {
-        const qtd = Math.max(1, Math.min(20, q));
-        setCaixas(Array.from({ length: qtd }, (_, i) => caixas[i] ?? ""));
-    };
+    const mudarGrupo = (i: number, campo: 'qtd' | 'frangos', v: string) => setGrupos(grupos.map((g, j) => j === i ? { ...g, [campo]: v } : g));
 
+    const preenchidos = grupos.filter(g => g.qtd.trim() || g.frangos.trim());
+    const caixas = preenchidos.flatMap(g => Array.from({ length: Math.min(200, inteiro(g.qtd)) }, () => inteiro(g.frangos)));
     const custoCaixa = n(precoKg) * n(kgCaixa);
-    const frangos = caixas.reduce((s, c) => s + inteiro(c), 0);
+    const frangos = caixas.reduce((s, c) => s + c, 0);
     const total = custoCaixa * caixas.length;
     const custoUn = frangos > 0 ? total / frangos : 0;
     const media = custoMedioHistorico(d, editando?.id);
-    const completo = n(precoKg) > 0 && n(kgCaixa) > 0 && caixas.every(c => inteiro(c) > 0);
+    const completo = n(precoKg) > 0 && n(kgCaixa) > 0 && preenchidos.length > 0 && preenchidos.every(g => inteiro(g.qtd) > 0 && inteiro(g.frangos) > 0);
 
     const salvar = async () => {
-        if (!completo) return alert("Preencha o preço do kg e quantos frangos vieram em cada caixa.");
+        if (!completo) return alert("Preencha o preço do kg e, em cada linha, quantas caixas e quantos frangos vieram em cada uma.");
         setSalvando(true);
-        const campos = { data, preco_kg: n(precoKg), kg_por_caixa: n(kgCaixa), caixas: caixas.map(inteiro) };
+        const campos = { data, preco_kg: n(precoKg), kg_por_caixa: n(kgCaixa), caixas };
         const { error } = editando
             ? await supabase.from('frango_compras').update(campos).eq('id', editando.id)
             : await supabase.from('frango_compras').insert({ user_id: userId, ...campos });
@@ -71,25 +72,35 @@ function CompraFrango({ d, mes, userId, recarregar }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <Card className="lg:col-span-3" titulo={editando ? `Editando compra de ${dataCurta(editando.data)}` : "Compra de frango"}
                 extra={editando && <button onClick={limpar} className="p-1 text-foreground/50 hover:text-white"><X className="w-5 h-5" /></button>}>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="col-span-2 sm:col-span-1">
                         <label className={labelCls}>Data</label>
                         <input type="date" value={data} onChange={e => setData(e.target.value)} className={inputCls} />
                     </div>
                     <CampoNumero label="Preço do kg" prefixo="R$" step="0.01" value={precoKg} onChange={setPrecoKg} placeholder="8,90" />
                     <CampoNumero label="Kg por caixa" step="0.5" value={kgCaixa} onChange={setKgCaixa} />
-                    <CampoNumero label="Caixas" value={String(caixas.length)} onChange={v => setQtdCaixas(inteiro(v))} min="1" />
                 </div>
 
-                <label className={`${labelCls} mt-4`}>Frangos em cada caixa (conte na hora)</label>
-                <div className="flex flex-wrap gap-2">
-                    {caixas.map((c, i) => (
-                        <div key={i} className="w-20">
-                            <input type="number" min="1" inputMode="numeric" value={c} placeholder={`cx ${i + 1}`}
-                                onChange={e => setCaixas(caixas.map((x, j) => j === i ? e.target.value : x))}
-                                className={`${inputCls} text-center text-lg font-bold`} />
+                <label className={`${labelCls} mt-4`}>Caixas que chegaram (junte as que vieram com a mesma quantidade)</label>
+                <div className="space-y-2">
+                    {grupos.map((g, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm text-foreground/70">
+                            <input type="number" min="1" inputMode="numeric" value={g.qtd} placeholder="5"
+                                onChange={e => mudarGrupo(i, 'qtd', e.target.value)}
+                                className={`${inputCls.replace('w-full ', '')} w-20 text-center text-lg font-bold`} />
+                            <span className="whitespace-nowrap">{inteiro(g.qtd) === 1 ? "caixa com" : "caixas com"}</span>
+                            <input type="number" min="1" inputMode="numeric" value={g.frangos} placeholder="8"
+                                onChange={e => mudarGrupo(i, 'frangos', e.target.value)}
+                                className={`${inputCls.replace('w-full ', '')} w-20 text-center text-lg font-bold`} />
+                            <span className="whitespace-nowrap">frangos</span>
+                            {grupos.length > 1 && (
+                                <button onClick={() => setGrupos(grupos.filter((_, j) => j !== i))} className="p-2 text-foreground/40 hover:text-brand-red" title="Tirar esta linha"><X className="w-4 h-4" /></button>
+                            )}
                         </div>
                     ))}
+                    <button onClick={() => setGrupos([...grupos, { qtd: "", frangos: "" }])} className={btnSecundario}>
+                        <Plus className="w-4 h-4 inline mr-1" />Caixas com outra quantidade
+                    </button>
                 </div>
 
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
@@ -111,10 +122,10 @@ function CompraFrango({ d, mes, userId, recarregar }: Props) {
                                 {custoUn <= media ? "✓ Compra boa" : "Acima da média"} — sua média é {formatBRL(media)}
                             </p>
                         )}
-                        {caixas.length > 1 && (
+                        {agruparCaixas(caixas).length > 1 && (
                             <ul className="text-foreground/70 space-y-1">
-                                {caixas.map((c, i) => inteiro(c) > 0 && (
-                                    <li key={i}>Caixa {i + 1}: {inteiro(c)} frangos · {formatBRL(custoCaixa / inteiro(c))}/frango</li>
+                                {agruparCaixas(caixas).map((g, i) => g.frangos > 0 && (
+                                    <li key={i}>{g.qtd} {g.qtd === 1 ? "caixa" : "caixas"} de {g.frangos}: {formatBRL(custoCaixa / g.frangos)}/frango</li>
                                 ))}
                             </ul>
                         )}
@@ -132,7 +143,7 @@ function CompraFrango({ d, mes, userId, recarregar }: Props) {
                             return (
                                 <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 bg-surface border border-borders rounded-xl px-4 py-3">
                                     <div>
-                                        <p className="text-white font-bold">{dataCurta(c.data)} · {c.caixas.length} {c.caixas.length === 1 ? "caixa" : "caixas"} ({c.caixas.join(" + ")} frangos)</p>
+                                        <p className="text-white font-bold">{dataCurta(c.data)} · {c.caixas.length} {c.caixas.length === 1 ? "caixa" : "caixas"} ({textoCaixas(c.caixas)} · {qtd} frangos)</p>
                                         <p className="text-xs text-foreground/60">{formatBRL(c.preco_kg)}/kg · {formatBRL(tot / qtd)}/frango</p>
                                     </div>
                                     <div className="flex items-center gap-2">

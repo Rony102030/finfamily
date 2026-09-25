@@ -200,13 +200,13 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
                                     <>
                                         <input list="clientes-frango" placeholder="Nome" value={f.cliente}
                                             onChange={e => setFiados(fiados.map((x, j) => j === i ? { ...x, cliente: e.target.value } : x))}
-                                            className={`${inputCls} flex-1`} />
+                                            className={`${inputCls.replace('w-full ', '')} flex-1 min-w-0`} />
                                         <input type="number" min="1" value={f.qtd}
                                             onChange={e => setFiados(fiados.map((x, j) => j === i ? { ...x, qtd: e.target.value } : x))}
-                                            className={`${inputCls} w-16 text-center`} />
+                                            className={`${inputCls.replace('w-full ', '')} w-14 flex-none text-center`} />
                                         <select value={f.tamanho}
                                             onChange={e => setFiados(fiados.map((x, j) => j === i ? { ...x, tamanho: e.target.value as any } : x))}
-                                            className={`${inputCls} w-28`}>
+                                            className={`${inputCls.replace('w-full ', '')} w-24 flex-none`}>
                                             <option value="grande">{formatBRL(precoGrande)}</option>
                                             <option value="padrao">{formatBRL(precoPadrao)}</option>
                                         </select>

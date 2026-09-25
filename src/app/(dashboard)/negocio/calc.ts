@@ -22,6 +22,7 @@ export interface Fiado {
     valor: number; status: 'aberto' | 'pago' | 'perdido'; data_baixa: string | null; created_at: string;
 }
 export interface Recebimento { id: string; fiado_id: string; data: string; valor: number; forma: 'dinheiro' | 'pix' | 'cartao' }
+export interface Perda { id: string; data: string; qtd: number; motivo: string | null; created_at: string }
 
 export interface FrangoData {
     config: FrangoConfig;
@@ -32,6 +33,10 @@ export interface FrangoData {
     fechamentos: Fechamento[];
     fiados: Fiado[];
     recebimentos: Recebimento[];
+    /** Frangos perdidos no estoque (estragou, venceu...). Opcional: o conector ainda não carrega. */
+    perdas?: Perda[];
+    /** true enquanto a tabela frango_perdas não existe no banco. */
+    perdasIndisponivel?: boolean;
 }
 
 export const CATEGORIAS_CUSTO = ["Tempero", "Embalagem", "Gás", "Carvão", "Gasolina", "Limpeza", "Energia", "Farofa", "Marketing", "Colaborador", "Outro"];
@@ -96,26 +101,46 @@ export function resumoFechamento(f: Fechamento, fiados: Fiado[]) {
     };
 }
 
+// ---------- caixas agrupadas ----------
+
+/** Junta caixas iguais em sequência: [8,8,8,7,7] -> [{qtd: 3, frangos: 8}, {qtd: 2, frangos: 7}]. */
+export function agruparCaixas(caixas: number[]) {
+    const grupos: { qtd: number; frangos: number }[] = [];
+    for (const c of caixas) {
+        const ultimo = grupos[grupos.length - 1];
+        if (ultimo && ultimo.frangos === c) ultimo.qtd++;
+        else grupos.push({ qtd: 1, frangos: c });
+    }
+    return grupos;
+}
+
+/** "5 de 8 + 5 de 7" */
+export function textoCaixas(caixas: number[]) {
+    return agruparCaixas(caixas).map(g => `${g.qtd} de ${g.frangos}`).join(" + ");
+}
+
 // ---------- estoque (FIFO por caixa) ----------
 
 export interface Lote { compraId: string; data: string; frangosNaCaixa: number; custoUn: number; restante: number }
 export interface Consumo { frangosNaCaixa: number | null; qtd: number; custoUn: number }
 
 /**
- * Reproduz compras e fechamentos em ordem de data. Cada caixa é um lote; os fechamentos
- * consomem os lotes mais antigos primeiro. Se faltar estoque, o que faltou usa o último
- * custo conhecido e fica marcado como "sem lote".
+ * Reproduz compras, fechamentos e perdas em ordem de data. Cada caixa é um lote; fechamentos e
+ * perdas consomem os lotes mais antigos primeiro. Se faltar estoque num fechamento, o que faltou
+ * usa o último custo conhecido e fica marcado como "sem lote". Perda maior que o estoque só tira o que havia.
  */
 export function replayEstoque(d: FrangoData, ate?: string) {
-    type Ev = { data: string; ordem: number; compra?: Compra; fech?: Fechamento };
+    type Ev = { data: string; ordem: number; compra?: Compra; fech?: Fechamento; perda?: Perda };
     const evs: Ev[] = [
         ...d.compras.map(c => ({ data: c.data, ordem: 0, compra: c })),
         ...d.fechamentos.map(f => ({ data: f.data, ordem: 1, fech: f })),
+        ...(d.perdas || []).map(p => ({ data: p.data, ordem: 2, perda: p })),
     ].filter(e => !ate || e.data <= ate)
         .sort((a, b) => a.data.localeCompare(b.data) || a.ordem - b.ordem);
 
     const lotes: Lote[] = [];
     const consumoPorFechamento = new Map<string, { custo: number; faltou: number; consumo: Consumo[] }>();
+    const consumoPorPerda = new Map<string, { custo: number; qtd: number }>();
     let ultimoCusto = 0;
 
     for (const ev of evs) {
@@ -145,6 +170,18 @@ export function replayEstoque(d: FrangoData, ate?: string) {
                 consumo.push({ frangosNaCaixa: null, qtd: precisa, custoUn: ultimoCusto });
             }
             consumoPorFechamento.set(ev.fech.id, { custo, faltou: precisa, consumo });
+        } else if (ev.perda) {
+            let precisa = ev.perda.qtd, custo = 0, qtd = 0;
+            for (const lote of lotes) {
+                if (precisa <= 0) break;
+                if (lote.restante <= 0) continue;
+                const q = Math.min(lote.restante, precisa);
+                lote.restante -= q;
+                precisa -= q;
+                qtd += q;
+                custo += q * lote.custoUn;
+            }
+            consumoPorPerda.set(ev.perda.id, { custo, qtd });
         }
     }
 
@@ -157,6 +194,7 @@ export function replayEstoque(d: FrangoData, ate?: string) {
         valorParado: round2(valorParado),
         custoMedio: unidades > 0 ? valorParado / unidades : ultimoCusto,
         consumoPorFechamento,
+        consumoPorPerda,
     };
 }
 
@@ -280,8 +318,16 @@ export function resultadoPeriodo(d: FrangoData, de: string, ate: string, estoque
     const compras = d.compras.filter(c => dentro(c.data))
         .reduce((s, c) => s + c.preco_kg * c.kg_por_caixa * c.caixas.length, 0);
 
+    // frango que se perdeu no estoque (estragou, venceu...): custo pelo lote de onde saiu
+    let perdasEstoque = 0, perdasQtd = 0;
+    for (const p of (d.perdas || []).filter(p => dentro(p.data))) {
+        const c = estoque.consumoPorPerda.get(p.id);
+        perdasEstoque += c?.custo || 0;
+        perdasQtd += c?.qtd || 0;
+    }
+
     const receita = vendas + fiadoAntigoRecebido;
-    const lucro = receita - custoFrango - outrosCustos - custosFixos - perdidos;
+    const lucro = receita - custoFrango - outrosCustos - custosFixos - perdidos - perdasEstoque;
     const entrou = recDinheiro + recPix + recCartao;
 
     return {
@@ -293,6 +339,8 @@ export function resultadoPeriodo(d: FrangoData, de: string, ate: string, estoque
         outrosCustos: round2(outrosCustos),
         custosFixos: round2(custosFixos),
         perdidos: round2(perdidos),
+        perdasEstoque: round2(perdasEstoque),
+        perdasQtd,
         lucro: round2(lucro),
         margemPorFrango: vendidos > 0 ? round2(lucro / vendidos) : null,
         caixa: {

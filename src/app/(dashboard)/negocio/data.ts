@@ -39,7 +39,14 @@ async function buscar(userId: string) {
     return res.map(r => r.data || []);
 }
 
-function montarFrangoData(c: any, fixos: any[], clientes: any[], compras: any[], custos: any[], fechamentos: any[], fiados: any[], recebimentos: any[]): FrangoData {
+/** Perdas no estoque. `null` quando a tabela ainda não foi criada (migration_frango_perdas.sql). */
+async function buscarPerdas(userId: string) {
+    const { data, error } = await supabase.from('frango_perdas').select('*').eq('user_id', userId).order('data').limit(5000);
+    if (error) return null;
+    return (data || []).map((p: any) => ({ ...p, qtd: Number(p.qtd) }));
+}
+
+function montarFrangoData(c: any, fixos: any[], clientes: any[], compras: any[], custos: any[], fechamentos: any[], fiados: any[], recebimentos: any[], perdas: any[] | null = []): FrangoData {
     return {
         config: {
             nome: c.nome, preco_grande: num(c.preco_grande), preco_padrao: num(c.preco_padrao),
@@ -56,6 +63,8 @@ function montarFrangoData(c: any, fixos: any[], clientes: any[], compras: any[],
         })),
         fiados: fiados.map(x => ({ ...x, valor: num(x.valor), preco_un: num(x.preco_un) })),
         recebimentos: recebimentos.map(x => ({ ...x, valor: num(x.valor) })),
+        perdas: perdas || [],
+        perdasIndisponivel: perdas === null,
     };
 }
 
@@ -64,8 +73,8 @@ export async function carregarFrangoLeitura(userId: string): Promise<FrangoData 
     const { data: acesso } = await supabase.from('negocios_acesso')
         .select('modulo').eq('user_id', userId).eq('modulo', 'frango').maybeSingle();
     if (!acesso) return null;
-    const [cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos] = await buscar(userId);
-    return montarFrangoData(cfg[0] || CONFIG_PADRAO, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos);
+    const [[cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos], perdas] = await Promise.all([buscar(userId), buscarPerdas(userId)]);
+    return montarFrangoData(cfg[0] || CONFIG_PADRAO, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos, perdas);
 }
 
 export function useFrangoData(userId: string | undefined) {
@@ -80,7 +89,7 @@ export function useFrangoData(userId: string | undefined) {
                 .select('modulo').eq('user_id', userId).eq('modulo', 'frango').maybeSingle();
             if (!acesso) { setErro('SEM_ACESSO'); return; }
 
-            let [cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos] = await buscar(userId);
+            let [[cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos], perdas] = await Promise.all([buscar(userId), buscarPerdas(userId)]);
 
             if (!cfg.length) {
                 await supabase.from('frango_config').upsert({ user_id: userId, ...CONFIG_PADRAO }, { onConflict: 'user_id', ignoreDuplicates: true });
@@ -90,7 +99,7 @@ export function useFrangoData(userId: string | undefined) {
                 custos = (await supabase.from('frango_custos').select('*').eq('user_id', userId).order('created_at').limit(5000)).data || custos;
             }
 
-            setData(montarFrangoData(cfg[0], fixos, clientes, compras, custos, fechamentos, fiados, recebimentos));
+            setData(montarFrangoData(cfg[0], fixos, clientes, compras, custos, fechamentos, fiados, recebimentos, perdas));
             setErro(null);
         } catch (e: any) {
             const semTabela = e?.code === '42P01' || e?.code === 'PGRST205' || /does not exist|schema cache/i.test(e?.message || '');

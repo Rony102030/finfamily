@@ -121,6 +121,7 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
                         <Linha label="Outros custos" valor={-r.outrosCustos} />
                         <Linha label="Custos fixos" valor={-r.custosFixos} />
                         {r.perdidos > 0 && <Linha label="Fiado perdido" valor={-r.perdidos} />}
+                        {r.perdasQtd > 0 && <Linha label={`Perdas no estoque (${r.perdasQtd} un)`} valor={-r.perdasEstoque} />}
                         <div className="border-t border-borders pt-2">
                             <Linha label="Lucro" valor={r.lucro} forte />
                         </div>
@@ -143,7 +144,9 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
                     <div className="mt-4 pt-3 border-t border-borders text-sm text-foreground/80 space-y-1">
                         <p>
                             <b className="text-white">Ponto de equilíbrio:</b>{" "}
-                            {pontoEquilibrio === null
+                            {calc.fixos <= 0
+                                ? "sem custos fixos cadastrados neste mês (cadastre em Ajustes para ver quantos frangos cobrem os fixos)."
+                                : pontoEquilibrio === null
                                 ? "precisa de alguns dias de venda para calcular."
                                 : <>precisa vender <b className="text-white">{pontoEquilibrio}</b> frangos para cobrir {formatBRL(calc.fixos)} de fixos; já vendeu {r.vendidos}.</>}
                         </p>

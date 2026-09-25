@@ -78,7 +78,7 @@ export default function NegocioPage() {
                         {aba === 'fechamento' && <FechamentoTab d={data} mes={activeMonth} userId={user.id} recarregar={recarregar} />}
                         {aba === 'compras' && <ComprasTab d={data} mes={activeMonth} userId={user.id} recarregar={recarregar} />}
                         {aba === 'fiados' && <FiadosTab d={data} userId={user.id} recarregar={recarregar} />}
-                        {aba === 'estoque' && <EstoqueTab d={data} irPara={setAba} />}
+                        {aba === 'estoque' && <EstoqueTab d={data} mes={activeMonth} userId={user.id} recarregar={recarregar} irPara={setAba} />}
                         {aba === 'ajustes' && <AjustesTab d={data} userId={user.id} recarregar={recarregar} />}
                     </>
                 )}
