@@ -37,7 +37,7 @@ export default function DashboardLayout({
                     <div className="fixed inset-0 z-50 md:hidden flex">
                         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}></div>
                         <div className="relative w-[280px] h-full bg-background border-r border-borders">
-                            <Sidebar className="w-full h-full border-r border-borders" />
+                            <Sidebar className="w-full h-full border-r border-borders" onNavigate={() => setMobileMenuOpen(false)} />
                         </div>
                     </div>
                 )}

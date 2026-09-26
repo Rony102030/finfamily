@@ -24,7 +24,8 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { useNegociosAcesso } from "@/lib/negocios";
 
-export function Sidebar({ className }: { className?: string }) {
+/** onNavigate: chamado ao tocar num link (no celular, fecha o menu na hora). */
+export function Sidebar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
     const pathname = usePathname();
     const { signOut, user } = useAuth();
     const { activeMonth, setActiveMonth, userConfig } = useAppStore();
@@ -191,6 +192,7 @@ export function Sidebar({ className }: { className?: string }) {
                                 <Link
                                     key={link.href}
                                     href={link.href}
+                                    onClick={onNavigate}
                                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                                         (link as any).sub ? 'ml-4' : ''
                                     } ${isActive
@@ -229,7 +231,7 @@ export function Sidebar({ className }: { className?: string }) {
 
                 {/* User / Logout */}
                 <div className="flex items-center justify-between px-2">
-                    <Link href="/perfil" className="flex flex-col hover:opacity-80 transition-opacity" title="Meu perfil">
+                    <Link href="/perfil" onClick={onNavigate} className="flex flex-col hover:opacity-80 transition-opacity" title="Meu perfil">
                         {user?.user_metadata?.avatar_url ? (
                             <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover border border-brand-green mb-1" />
                         ) : (
