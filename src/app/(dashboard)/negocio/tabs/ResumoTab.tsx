@@ -114,6 +114,9 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
                             <Tooltip
                                 cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                                 contentStyle={{ backgroundColor: '#0c0f0e', borderColor: '#1f2523', borderRadius: '12px', color: '#fff' }}
+                                labelStyle={{ color: '#f8fafc', fontWeight: 700, marginBottom: 2 }}
+                                itemStyle={{ color: '#f8fafc' }}
+                                separator=": "
                                 formatter={(v: any, _n: any, p: any) => [`${formatBRL(Number(v))} · ${p?.payload?.vendidos ?? 0} frangos`, "Lucro"]}
                                 labelFormatter={l => `Semana de ${l}`}
                             />
