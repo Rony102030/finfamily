@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { AlertTriangle, Plus } from "lucide-react";
 import {
     FrangoData, replayEstoque, resultadoPeriodo, limitesDoMes, lucroPorSemana, fiadosAbertos,
-    contribuicaoPorFrango, fixosDoMes, margemPorTipoDeCaixa, efeitoFarofa, mediaAssadosSemana, hoje, formatBRL,
+    contribuicaoPorFrango, fixosDoMes, margemPorTipoDeCaixa, efeitoFarofa, mediaAssadosSemana, hoje, formatBRL, saldoCaixa,
 } from "../calc";
 import { Card, Numero, btnPrimario } from "../ui";
 import type { Aba } from "../page";
@@ -30,6 +30,7 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
             tabela: margemPorTipoDeCaixa(d, ref, 60, estoque),
             farofa: efeitoFarofa(d),
             mediaAssados: mediaAssadosSemana(d),
+            saldo: saldoCaixa(d),
         };
     }, [d, de, ate, mes, ref]);
 
@@ -48,6 +49,7 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-foreground/60">
                     {r.fechamentos} {r.fechamentos === 1 ? "dia de venda" : "dias de venda"} no mês · {r.vendidos} frangos vendidos
+                    {r.cruQtd > 0 && <> · {r.cruQtd} crus</>}
                 </p>
                 <button onClick={() => irPara('fechamento')} className={btnPrimario}>
                     <Plus className="w-5 h-5" /> Fechar dia
@@ -59,6 +61,16 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
                     <AlertTriangle className="w-5 h-5 text-brand-yellow flex-shrink-0 mt-0.5" />
                     <p className="text-foreground/90">
                         <b className="text-white">Estoque baixo:</b> {estoque.unidades} frangos no freezer e você assa em média {calc.mediaAssados} por semana. Compre até quinta.
+                    </p>
+                </div>
+            )}
+
+            {r.procura > 0 && (
+                <div className="secao flex items-start gap-3 text-sm">
+                    <AlertTriangle className="w-5 h-5 text-brand-yellow flex-shrink-0 mt-0.5" />
+                    <p className="text-foreground/90">
+                        <b className="text-white">Faltou frango:</b> {r.procura} {r.procura === 1 ? "pessoa procurou" : "pessoas procuraram"} e não tinha neste mês
+                        {r.fechamentos > 0 && <> (média de {(r.procura / r.fechamentos).toFixed(1).replace('.', ',')} por dia de venda)</>}. Vale assar uns a mais nos próximos dias.
                     </p>
                 </div>
             )}
@@ -116,8 +128,10 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card titulo="Como o lucro foi formado">
                     <dl className="text-sm space-y-2">
-                        <Linha label="Vendas (inclui fiado do dia)" valor={r.receita} />
+                        <Linha label="Vendas (inclui fiado do dia)" valor={r.receita - r.receitaCru} />
+                        {r.cruQtd > 0 && <Linha label={`Frango cru vendido (${r.cruQtd} un)`} valor={r.receitaCru} />}
                         <Linha label={`Frango assado (${r.assados} un)`} valor={-r.custoFrango} />
+                        {r.cruQtd > 0 && <Linha label={`Custo do frango cru (${r.cruQtd} un)`} valor={-r.custoCru} />}
                         <Linha label="Outros custos" valor={-r.outrosCustos} />
                         <Linha label="Custos fixos" valor={-r.custosFixos} />
                         {r.perdidos > 0 && <Linha label="Fiado perdido" valor={-r.perdidos} />}
@@ -141,6 +155,14 @@ export function ResumoTab({ d, mes, irPara }: { d: FrangoData; mes: string; irPa
                             <Linha label="Saiu (compras e custos)" valor={-r.caixa.saiu} />
                         </div>
                     </dl>
+                    {calc.saldo ? (
+                        <button onClick={() => irPara('caixa')} className="mt-3 w-full flex items-center justify-between gap-3 text-sm bg-surface border border-borders rounded-xl px-3 py-2.5 hover:border-brand-yellow">
+                            <span className="text-foreground/70">Saldo do caixa hoje</span>
+                            <span className="font-bold text-white">{formatBRL(calc.saldo.dinheiro)} dinheiro · {formatBRL(calc.saldo.conta)} conta</span>
+                        </button>
+                    ) : !d.melhoriasIndisponivel && (
+                        <button onClick={() => irPara('caixa')} className="mt-3 text-xs font-bold text-brand-yellow">Conferir o saldo do caixa →</button>
+                    )}
                     <div className="mt-4 pt-3 border-t border-borders text-sm text-foreground/80 space-y-1">
                         <p>
                             <b className="text-white">Ponto de equilíbrio:</b>{" "}

@@ -56,6 +56,26 @@ export const n = (s: string) => {
 };
 export const inteiro = (s: string) => Math.max(0, Math.floor(n(s)));
 
+/** Com o que foi pago: conta (Pix), dinheiro do caixa ou bolso do dono. */
+export function SeletorPagoCom({ value, onChange }: { value: string; onChange: (v: 'pix' | 'dinheiro' | 'dono') => void }) {
+    const opcoes = [{ id: 'pix', label: 'Conta (Pix)' }, { id: 'dinheiro', label: 'Dinheiro' }, { id: 'dono', label: 'Bolso do dono' }] as const;
+    return (
+        <div>
+            <label className={labelCls}>Pago com</label>
+            <div className="p-1 bg-surface rounded-xl flex gap-1 border border-borders">
+                {opcoes.map(o => (
+                    <button key={o.id} type="button" onClick={() => onChange(o.id)}
+                        className={`flex-1 py-1.5 px-1 text-xs sm:text-sm font-bold rounded-lg transition-colors whitespace-nowrap ${value === o.id ? 'bg-brand-yellow/20 text-brand-yellow' : 'text-foreground/50 hover:text-white'}`}>
+                        {o.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+export const textoPagoCom = (v?: string | null) => v === 'dono' ? "bolso do dono" : v === 'dinheiro' ? "dinheiro do caixa" : v === 'pix' ? "conta (Pix)" : "";
+
 export function Vazio({ children }: { children: ReactNode }) {
     return <div className="text-center py-10 text-sm text-foreground/50 border border-dashed border-borders rounded-2xl">{children}</div>;
 }

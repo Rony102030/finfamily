@@ -37,6 +37,8 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
     const [categoriaId, setCategoriaId] = useState("");
     const [subcategoriaId, setSubcategoriaId] = useState("");
     const [status, setStatus] = useState<'pago' | 'pendente'>('pago');
+    // Data do pagamento: vazio = a própria data do lançamento (o banco preenche)
+    const [pagoEm, setPagoEm] = useState("");
     const [recorrente, setRecorrente] = useState(false);
 
     // Installments / Repetition
@@ -56,6 +58,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                     setDataStr(transactionToEdit.data);
                     if (transactionToEdit.carteira_id) setCarteiraId(transactionToEdit.carteira_id);
                     if (transactionToEdit.status) setStatus(transactionToEdit.status);
+                    setPagoEm(transactionToEdit.status === 'pago' ? (transactionToEdit.data_pagamento || transactionToEdit.data || "") : "");
 
                     if (transactionToEdit.tipo === 'despesa') {
                         if (transactionToEdit.categoria_id) setCategoriaId(transactionToEdit.categoria_id);
@@ -103,6 +106,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
         setDescricao("");
         setValor("");
         setStatus("pago");
+        setPagoEm("");
         setRecorrente(false);
         setTipoRepeticao('unica');
         setQuantidadeParcelas(2);
@@ -179,6 +183,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                                 data: newDataStr,
                                 carteira_id: carteiraId || null,
                                 status: item.id === transactionToEdit.id ? status : item.status,
+                                ...(item.id === transactionToEdit.id && status === 'pago' && pagoEm ? { data_pagamento: pagoEm } : {}),
                                 recorrente: type === 'despesa' ? (tipoRepeticao === 'fixa') : false,
                                 categoria_id: type === 'despesa' ? (categoriaId || null) : null,
                                 subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
@@ -198,6 +203,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                         mes: mesStr,
                         carteira_id: carteiraId || null,
                         status,
+                        ...(status === 'pago' && pagoEm ? { data_pagamento: pagoEm } : {}),
                         recorrente: type === 'despesa' ? (tipoRepeticao === 'fixa') : false,
                         categoria_id: type === 'despesa' ? (categoriaId || null) : null,
                         subcategoria_id: type === 'despesa' ? (subcategoriaId || null) : null,
@@ -251,6 +257,7 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                         mes: currentMes,
                         data: currentData,
                         status: i === 0 ? status : 'pendente',
+                        ...(i === 0 && status === 'pago' && pagoEm ? { data_pagamento: pagoEm } : {}),
                         parcela_atual: isParcelado ? i + 1 : null,
                         parcela_total: isParcelado ? quantidadeParcelas : null,
                         descricao: descricao,
@@ -386,11 +393,24 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
                                     )}
                                 </div>
 
-                                <div className="flex mt-4 pt-4 border-t border-borders">
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 pt-4 border-t border-borders">
                                     <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={status === 'pago'} onChange={e => setStatus(e.target.checked ? 'pago' : 'pendente')} className="accent-brand-green w-4 h-4" />
+                                        <input type="checkbox" checked={status === 'pago'} onChange={e => {
+                                            const pagoAgora = e.target.checked;
+                                            setStatus(pagoAgora ? 'pago' : 'pendente');
+                                            // marcou como pago agora: o pagamento é de hoje (dá para trocar ao lado)
+                                            if (pagoAgora && transactionToEdit && transactionToEdit.status !== 'pago') setPagoEm(hojeISO());
+                                            if (!pagoAgora) setPagoEm("");
+                                        }} className="accent-brand-green w-4 h-4" />
                                         <span className="text-sm text-foreground/90">A parcela atual já foi paga?</span>
                                     </label>
+                                    {status === 'pago' && (
+                                        <label className="flex items-center gap-2 text-sm text-foreground/80">
+                                            Pago em
+                                            <input type="date" value={pagoEm || dataStr} onChange={e => setPagoEm(e.target.value)}
+                                                className="bg-surface border border-borders rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-brand-blue" />
+                                        </label>
+                                    )}
                                 </div>
                             </>
                         )}
@@ -422,4 +442,10 @@ export function TransactionModal({ isOpen, onClose, onSuccess, transactionToEdit
             </div>
         </div>
     );
+}
+
+/** Hoje no fuso do aparelho, AAAA-MM-DD. */
+function hojeISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

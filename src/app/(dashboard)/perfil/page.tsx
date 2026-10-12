@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { carregarComCache } from "@/lib/cache";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppStore } from "@/store";
 import { formatCurrency } from "@/lib/format";
@@ -60,15 +61,19 @@ export default function PerfilPage() {
 
     useEffect(() => {
         if (!user) return;
-        (async () => {
+        // mostra na hora o que já estava guardado e atualiza por trás
+        carregarComCache('perfil', `perfil:${user.id}`, async () => {
             const [l, cx] = await Promise.all([
                 supabase.from('lancamentos').select('tipo, valor, mes, created_at, categorias(nome)').eq('user_id', user.id).limit(20000),
                 carregarCaixinhas(user.id, activeMonth).catch(() => null),
             ]);
-            setLancs((l.data || []).map((x: any) => ({ ...x, valor: Number(x.valor) })));
-            setCaixinhas(cx);
+            if (l.error) throw l.error;
+            return { lancs: (l.data || []).map((x: any) => ({ ...x, valor: Number(x.valor) })), cx };
+        }, d => {
+            setLancs(d.lancs);
+            setCaixinhas(d.cx);
             setCarregando(false);
-        })();
+        }).catch(() => setCarregando(false));
     }, [user?.id]);
 
     const j = useMemo(() => calcularJornada(lancs, caixinhas), [lancs, caixinhas]);

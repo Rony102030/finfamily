@@ -10,6 +10,8 @@ import { TransactionModal } from "@/components/TransactionModal";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { MultiSelect } from "@/components/MultiSelect";
 import { guardadoNoMes, isEmergenciaNome } from "@/lib/caixinhas";
+import { carregarComCache } from "@/lib/cache";
+import { buscarLancamentos, chaveLancamentos } from "@/lib/dados";
 
 type Atalho = 'tudo' | 'despesa' | 'renda' | 'reserva' | 'pendente';
 const ATALHOS: { id: Atalho; label: string }[] = [
@@ -73,19 +75,11 @@ export default function LancamentosPage() {
         if (user && activeMonth) fetchTransactions();
     }, [user, activeMonth]);
 
-    const fetchTransactions = async () => {
-        setLoading(true);
-        const [lanc, mov] = await Promise.all([
-            supabase.from('lancamentos')
-                .select('*, categorias ( nome, icone, cor ), subcategorias ( nome ), carteiras ( nome ), fontes_renda ( nome )')
-                .eq('user_id', user!.id).eq('mes', activeMonth)
-                .order('data', { ascending: false }).order('created_at', { ascending: false }),
-            supabase.from('caixinha_movimentos').select('mes, tipo, valor').eq('user_id', user!.id).eq('mes', activeMonth),
-        ]);
-        setTransactions(lanc.data || []);
-        setGuardado(guardadoNoMes((mov.data || []).map((m: any) => ({ ...m, valor: Number(m.valor) })), activeMonth));
+    const fetchTransactions = () => carregarComCache('lancamentos', chaveLancamentos(user!.id, activeMonth), () => buscarLancamentos(user!.id, activeMonth), d => {
+        setTransactions(d.lancamentos);
+        setGuardado(guardadoNoMes(d.movimentos, activeMonth));
         setLoading(false);
-    };
+    }, () => setLoading(true)).catch(() => setLoading(false));
 
     const avisar = (texto: string) => { setAviso(texto); setTimeout(() => setAviso(null), 3500); };
 
@@ -428,6 +422,10 @@ function Linha({ t, aberto, selecao, onToggle, onEditar, onDuplicar, onStatus, o
         : reserva
             ? ["Reserva de emergência", t.carteiras?.nome]
             : [t.categorias?.nome || "Sem categoria", t.subcategorias?.nome, t.carteiras?.nome];
+    // pago em outro dia que não o do lançamento
+    if (t.status === 'pago' && t.data_pagamento && t.data_pagamento !== t.data) {
+        detalhe.push(`${renda ? "recebido" : "pago"} ${t.data_pagamento.slice(8, 10)}/${t.data_pagamento.slice(5, 7)}`);
+    }
 
     return (
         <div className={aberto ? "bg-white/[0.03]" : ""}>

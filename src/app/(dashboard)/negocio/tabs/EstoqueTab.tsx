@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, Plus, Trash2, PackageX } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, PackageX, ShoppingBag } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { FrangoData, replayEstoque, mediaAssadosSemana, dataCurta, formatBRL, hoje, limitesDoMes } from "../calc";
-import { Card, Numero, CampoNumero, btnPrimario, inputCls, labelCls, inteiro, Vazio } from "../ui";
+import { FrangoData, replayEstoque, mediaAssadosSemana, dataCurta, formatBRL, hoje, limitesDoMes, FORMAS } from "../calc";
+import { Card, Numero, CampoNumero, btnPrimario, inputCls, labelCls, inteiro, n, Vazio } from "../ui";
 import type { Aba } from "../page";
 
 type Props = { d: FrangoData; mes: string; userId: string; recarregar: () => Promise<void>; irPara: (a: Aba) => void };
@@ -48,6 +48,8 @@ export function EstoqueTab({ d, mes, userId, recarregar, irPara }: Props) {
                     </div>
                 )}
             </Card>
+
+            <VendaDeCru d={d} mes={mes} userId={userId} recarregar={recarregar} unidades={estoque.unidades} consumo={estoque.consumoPorVendaCru} />
 
             <PerdaNoEstoque d={d} mes={mes} userId={userId} recarregar={recarregar} unidades={estoque.unidades} consumo={estoque.consumoPorPerda} />
 
@@ -152,6 +154,106 @@ function PerdaNoEstoque({ d, mes, userId, recarregar, unidades, consumo }: {
                             </div>
                         );
                     })}
+                </div>
+            )}
+        </Card>
+    );
+}
+
+const PRECO_CRU = { sem: 30, temperado: 35 };
+
+/** Frango cru vendido direto do estoque: sai dos lotes mais antigos e entra como venda. */
+function VendaDeCru({ d, mes, userId, recarregar, unidades, consumo }: {
+    d: FrangoData; mes: string; userId: string; recarregar: () => Promise<void>; unidades: number;
+    consumo: Map<string, { custo: number; qtd: number }>;
+}) {
+    const [data, setData] = useState(hoje());
+    const [qtd, setQtd] = useState("");
+    const [temperado, setTemperado] = useState(false);
+    const [preco, setPreco] = useState(String(PRECO_CRU.sem));
+    const [forma, setForma] = useState<'dinheiro' | 'pix' | 'cartao'>('dinheiro');
+    const [salvando, setSalvando] = useState(false);
+
+    if (d.melhoriasIndisponivel) return null;
+
+    const { de, ate } = limitesDoMes(mes);
+    const doMes = (d.vendasCru || []).filter(v => v.data >= de && v.data <= ate).sort((a, b) => b.data.localeCompare(a.data));
+    const totalMes = doMes.reduce((s, v) => s + v.qtd * v.preco_un, 0);
+    const lucroMes = doMes.reduce((s, v) => s + v.qtd * v.preco_un - (consumo.get(v.id)?.custo || 0), 0);
+
+    const escolherTipo = (t: boolean) => { setTemperado(t); setPreco(String(t ? PRECO_CRU.temperado : PRECO_CRU.sem)); };
+
+    const registrar = async () => {
+        const q = inteiro(qtd);
+        if (q <= 0 || !(n(preco) > 0)) return alert("Informe quantos frangos e o preço.");
+        if (q > unidades && !confirm(`O estoque tem ${unidades} frangos e você informou ${q}. Registrar mesmo assim? Só sai o que existe no estoque.`)) return;
+        setSalvando(true);
+        const { error } = await supabase.from('frango_vendas_cru').insert({ user_id: userId, data, qtd: q, preco_un: n(preco), temperado, forma });
+        setSalvando(false);
+        if (error) return alert("Erro ao registrar: " + error.message);
+        setQtd("");
+        await recarregar();
+    };
+
+    const excluir = async (id: string) => {
+        if (!confirm("Excluir esta venda? Os frangos voltam para o estoque.")) return;
+        const { error } = await supabase.from('frango_vendas_cru').delete().eq('id', id);
+        if (error) return alert("Erro ao excluir: " + error.message);
+        await recarregar();
+    };
+
+    const total = inteiro(qtd) * n(preco);
+
+    return (
+        <Card titulo={<span className="flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-brand-green" />Venda de frango cru</span>}
+            extra={totalMes > 0 && <span className="text-sm font-bold text-brand-green">{formatBRL(totalMes)} no mês</span>}>
+            <p className="text-sm text-foreground/60 mb-4">Frango vendido cru, direto do estoque. Sai dos lotes mais antigos e entra como venda no lucro do mês.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
+                <div>
+                    <label className={labelCls}>Data</label>
+                    <input type="date" value={data} onChange={e => setData(e.target.value)} className={inputCls} />
+                </div>
+                <CampoNumero label="Frangos" value={qtd} onChange={setQtd} min="1" placeholder="1" />
+                <div className="col-span-2">
+                    <label className={labelCls}>Tipo</label>
+                    <div className="p-1 bg-surface rounded-xl flex gap-1 border border-borders">
+                        {[false, true].map(t => (
+                            <button key={String(t)} type="button" onClick={() => escolherTipo(t)}
+                                className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-colors ${temperado === t ? 'bg-brand-yellow/20 text-brand-yellow' : 'text-foreground/50 hover:text-white'}`}>
+                                {t ? "Temperado" : "Sem tempero"}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <CampoNumero label="Preço por frango" prefixo="R$" step="0.01" value={preco} onChange={setPreco} />
+                <div className="col-span-2 sm:col-span-2">
+                    <label className={labelCls}>Recebido em</label>
+                    <div className="p-1 bg-surface rounded-xl flex gap-1 border border-borders">
+                        {FORMAS.map(f => (
+                            <button key={f.id} type="button" onClick={() => setForma(f.id)}
+                                className={`flex-1 py-1.5 text-sm font-bold rounded-lg transition-colors ${forma === f.id ? 'bg-brand-yellow/20 text-brand-yellow' : 'text-foreground/50 hover:text-white'}`}>
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <button onClick={registrar} disabled={salvando || inteiro(qtd) <= 0} className={`${btnPrimario} col-span-2 sm:col-span-1`}>
+                    {salvando ? "Salvando..." : <><ShoppingBag className="w-4 h-4" /> Vender{total > 0 ? ` ${formatBRL(total)}` : ""}</>}
+                </button>
+            </div>
+
+            {doMes.length > 0 && (
+                <div className="mt-5">
+                    <p className="text-xs uppercase font-bold tracking-wider text-foreground/50 mb-1">Vendas de cru do mês · lucro {formatBRL(lucroMes)}</p>
+                    {doMes.map(v => (
+                        <div key={v.id} className="flex items-center justify-between gap-3 border-b border-borders py-2.5 text-sm">
+                            <p className="text-foreground/80"><b className="text-white">{dataCurta(v.data)}</b> · {v.qtd} {v.qtd === 1 ? "frango" : "frangos"} {v.temperado ? "temperado" : "sem tempero"} · {formatBRL(v.preco_un)} · {FORMAS.find(f => f.id === v.forma)?.label}</p>
+                            <span className="flex items-center gap-1">
+                                <b className="text-brand-green whitespace-nowrap">{formatBRL(v.qtd * v.preco_un)}</b>
+                                <button onClick={() => excluir(v.id)} className="p-2 text-foreground/40 hover:text-brand-red" title="Excluir"><Trash2 className="w-4 h-4" /></button>
+                            </span>
+                        </div>
+                    ))}
                 </div>
             )}
         </Card>

@@ -14,6 +14,10 @@ interface LinhaFiado { key: string; cliente: string; qtd: string; tamanho: 'gran
 
 const novaLinha = (): LinhaFiado => ({ key: Math.random().toString(36).slice(2), cliente: "", qtd: "1", tamanho: 'padrao' });
 
+/** Venda a outro preço (ex.: 1 frango a R$ 40). */
+interface LinhaOutra { key: string; qtd: string; preco: string }
+const novaOutra = (): LinhaOutra => ({ key: Math.random().toString(36).slice(2), qtd: "1", preco: "" });
+
 export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; mes: string; userId: string; recarregar: () => Promise<void> }) {
     const [editando, setEditando] = useState<Fechamento | null>(null);
     const [data, setData] = useState(hoje());
@@ -26,6 +30,9 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
     const [cartao, setCartao] = useState("");
     const [observacao, setObservacao] = useState("");
     const [fiados, setFiados] = useState<LinhaFiado[]>([]);
+    const [outras, setOutras] = useState<LinhaOutra[]>([]);
+    const [procura, setProcura] = useState("");
+    const temMelhorias = !d.melhoriasIndisponivel;
     const [salvando, setSalvando] = useState(false);
 
     const precoGrande = editando?.preco_grande ?? d.config.preco_grande;
@@ -35,7 +42,7 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
 
     const limpar = () => {
         setEditando(null); setData(hoje()); setFarofa(false); setAssados(""); setVendGrande(""); setVendPadrao("");
-        setDinheiro(""); setPix(""); setCartao(""); setObservacao(""); setFiados([]);
+        setDinheiro(""); setPix(""); setCartao(""); setObservacao(""); setFiados([]); setOutras([]); setProcura("");
     };
 
     const carregar = (f: Fechamento) => {
@@ -43,6 +50,8 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
         setAssados(String(f.assados)); setVendGrande(String(f.vend_grande || "")); setVendPadrao(String(f.vend_padrao || ""));
         setDinheiro(f.rec_dinheiro ? String(f.rec_dinheiro) : ""); setPix(f.rec_pix ? String(f.rec_pix) : ""); setCartao(f.rec_cartao ? String(f.rec_cartao) : "");
         setObservacao(f.observacao || "");
+        setOutras((f.vendas_outras || []).map(v => ({ key: Math.random().toString(36).slice(2), qtd: String(v.qtd), preco: String(v.preco) })));
+        setProcura(f.procura_nao_atendida ? String(f.procura_nao_atendida) : "");
         setFiados(fiadosDoFechamento(d, f.id).map(x => ({
             key: x.id,
             cliente: d.clientes.find(c => c.id === x.cliente_id)?.nome || "",
@@ -70,9 +79,12 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
     const valorLinha = (f: LinhaFiado) => f.travado && f.valorTravado !== undefined ? f.valorTravado : inteiro(f.qtd) * (f.tamanho === 'grande' ? precoGrande : precoPadrao);
     const fiadoQtd = fiadoLinhas.reduce((s, f) => s + inteiro(f.qtd), 0);
     const fiadoValor = fiadoLinhas.reduce((s, f) => s + valorLinha(f), 0);
-    const vendidos = inteiro(vendGrande) + inteiro(vendPadrao) + fiadoQtd;
+    const outrasValidas = outras.filter(o => inteiro(o.qtd) > 0 && n(o.preco) > 0).map(o => ({ qtd: inteiro(o.qtd), preco: n(o.preco) }));
+    const outrasQtd = outrasValidas.reduce((s, o) => s + o.qtd, 0);
+    const outrasValor = outrasValidas.reduce((s, o) => s + o.qtd * o.preco, 0);
+    const vendidos = inteiro(vendGrande) + inteiro(vendPadrao) + outrasQtd + fiadoQtd;
     const sobra = inteiro(assados) - vendidos;
-    const totalVendido = inteiro(vendGrande) * precoGrande + inteiro(vendPadrao) * precoPadrao + fiadoValor;
+    const totalVendido = inteiro(vendGrande) * precoGrande + inteiro(vendPadrao) * precoPadrao + outrasValor + fiadoValor;
     const recebido = n(dinheiro) + n(pix) + n(cartao);
     const diferenca = Math.round((recebido + fiadoValor - totalVendido) * 100) / 100;
 
@@ -93,6 +105,7 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
                 data, farofa, assados: inteiro(assados), vend_grande: inteiro(vendGrande), vend_padrao: inteiro(vendPadrao),
                 preco_grande: precoGrande, preco_padrao: precoPadrao,
                 rec_dinheiro: n(dinheiro), rec_pix: n(pix), rec_cartao: n(cartao), observacao: observacao.trim() || null,
+                ...(temMelhorias ? { vendas_outras: outrasValidas, procura_nao_atendida: inteiro(procura) } : {}),
             };
             let fechamentoId = editando?.id;
             if (editando) {
@@ -187,6 +200,24 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
                         <CampoNumero label={`Vendidos a ${formatBRL(precoPadrao)}`} value={vendPadrao} onChange={setVendPadrao} grande />
                     </div>
 
+                    {temMelhorias && (
+                        <div className="mt-3 space-y-2">
+                            {outras.map((o, i) => (
+                                <div key={o.key} className="flex gap-2 items-center">
+                                    <input type="number" min="1" value={o.qtd} aria-label="Quantidade"
+                                        onChange={e => setOutras(outras.map((x, j) => j === i ? { ...x, qtd: e.target.value } : x))}
+                                        className={`${inputCls.replace('w-full ', '')} w-16 flex-none text-center`} />
+                                    <span className="text-sm text-foreground/60 whitespace-nowrap">vendidos a R$</span>
+                                    <input type="number" inputMode="decimal" step="0.01" min="0" value={o.preco} placeholder="40" aria-label="Preço"
+                                        onChange={e => setOutras(outras.map((x, j) => j === i ? { ...x, preco: e.target.value } : x))}
+                                        className={`${inputCls.replace('w-full ', '')} flex-1 min-w-0`} />
+                                    <button onClick={() => setOutras(outras.filter((_, j) => j !== i))} className="p-2 text-foreground/40 hover:text-brand-red"><X className="w-4 h-4" /></button>
+                                </div>
+                            ))}
+                            <button onClick={() => setOutras([...outras, novaOutra()])} className={btnSecundario}><Plus className="w-4 h-4 inline mr-1" />Vendido a outro preço</button>
+                        </div>
+                    )}
+
                     <h4 className="mt-5 mb-2 text-xs uppercase font-bold tracking-wider text-foreground/50">Fiado</h4>
                     <datalist id="clientes-frango">{d.clientes.map(c => <option key={c.id} value={c.nome} />)}</datalist>
                     <div className="space-y-2">
@@ -224,6 +255,13 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
                         <CampoNumero label="Pix" prefixo="R$" step="0.01" value={pix} onChange={setPix} />
                         <CampoNumero label="Cartão" prefixo="R$" step="0.01" value={cartao} onChange={setCartao} />
                     </div>
+
+                    {temMelhorias && (
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                            <CampoNumero label="Procuraram e não tinha" value={procura} onChange={setProcura}
+                                dica="Quantas pessoas pediram depois que acabou" />
+                        </div>
+                    )}
 
                     <div className="mt-4">
                         <label className={labelCls}>Observação (opcional)</label>
@@ -270,6 +308,7 @@ export function FechamentoTab({ d, mes, userId, recarregar }: { d: FrangoData; m
                                             <p className="text-white font-bold">{diaSemana(f.data)} {dataCurta(f.data)} {f.farofa && <span className="ml-1 text-xs font-medium text-brand-yellow">farofa</span>}</p>
                                             <p className="text-xs text-foreground/60">
                                                 {f.assados} assados · {r.vendidos} vendidos · {r.sobra} casa{r.fiadoValor > 0 ? ` · fiado ${formatBRL(r.fiadoValor)}` : ""}
+                                                {(f.procura_nao_atendida || 0) > 0 && <span className="text-brand-yellow"> · {f.procura_nao_atendida} sem frango</span>}
                                                 {r.diferenca !== 0 && <span className="text-brand-red"> · diferença {formatBRL(r.diferenca)}</span>}
                                             </p>
                                         </div>

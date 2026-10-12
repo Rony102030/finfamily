@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { carregarComCache } from "@/lib/cache";
 import { FrangoData, FrangoConfig, mesAtual } from "./calc";
 
 export const CONFIG_PADRAO: FrangoConfig = {
@@ -46,11 +47,26 @@ async function buscarPerdas(userId: string) {
     return (data || []).map((p: any) => ({ ...p, qtd: Number(p.qtd) }));
 }
 
-function montarFrangoData(c: any, fixos: any[], clientes: any[], compras: any[], custos: any[], fechamentos: any[], fiados: any[], recebimentos: any[], perdas: any[] | null = []): FrangoData {
+/** Venda de frango cru e conta com o dono. `null` quando migration_melhorias_outubro.sql ainda não foi rodada. */
+async function buscarExtras(userId: string) {
+    const [cru, dono] = await Promise.all([
+        supabase.from('frango_vendas_cru').select('*').eq('user_id', userId).order('data').limit(5000),
+        supabase.from('frango_conta_dono').select('*').eq('user_id', userId).order('data').limit(5000),
+    ]);
+    if (cru.error || dono.error) return null;
+    return {
+        vendasCru: (cru.data || []).map((v: any) => ({ ...v, qtd: Number(v.qtd), preco_un: num(v.preco_un) })),
+        contaDono: (dono.data || []).map((m: any) => ({ ...m, valor: num(m.valor) })),
+    };
+}
+type Extras = Awaited<ReturnType<typeof buscarExtras>>;
+
+function montarFrangoData(c: any, fixos: any[], clientes: any[], compras: any[], custos: any[], fechamentos: any[], fiados: any[], recebimentos: any[], perdas: any[] | null = [], extras: Extras = null): FrangoData {
     return {
         config: {
             nome: c.nome, preco_grande: num(c.preco_grande), preco_padrao: num(c.preco_padrao),
             kg_por_caixa: num(c.kg_por_caixa), meta_mensal: num(c.meta_mensal), template_whatsapp: c.template_whatsapp,
+            caixa_data: c.caixa_data || null, caixa_dinheiro: num(c.caixa_dinheiro) || 0, caixa_pix: num(c.caixa_pix) || 0,
         },
         fixos: fixos.map(f => ({ ...f, valor: num(f.valor) })),
         clientes,
@@ -60,11 +76,16 @@ function montarFrangoData(c: any, fixos: any[], clientes: any[], compras: any[],
             ...x,
             preco_grande: num(x.preco_grande), preco_padrao: num(x.preco_padrao),
             rec_dinheiro: num(x.rec_dinheiro), rec_pix: num(x.rec_pix), rec_cartao: num(x.rec_cartao),
+            vendas_outras: (x.vendas_outras || []).map((v: any) => ({ qtd: Number(v.qtd), preco: Number(v.preco) })),
+            procura_nao_atendida: Number(x.procura_nao_atendida || 0),
         })),
         fiados: fiados.map(x => ({ ...x, valor: num(x.valor), preco_un: num(x.preco_un) })),
         recebimentos: recebimentos.map(x => ({ ...x, valor: num(x.valor) })),
         perdas: perdas || [],
         perdasIndisponivel: perdas === null,
+        vendasCru: extras?.vendasCru || [],
+        contaDono: extras?.contaDono || [],
+        melhoriasIndisponivel: extras === null,
     };
 }
 
@@ -73,8 +94,26 @@ export async function carregarFrangoLeitura(userId: string): Promise<FrangoData 
     const { data: acesso } = await supabase.from('negocios_acesso')
         .select('modulo').eq('user_id', userId).eq('modulo', 'frango').maybeSingle();
     if (!acesso) return null;
-    const [[cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos], perdas] = await Promise.all([buscar(userId), buscarPerdas(userId)]);
-    return montarFrangoData(cfg[0] || CONFIG_PADRAO, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos, perdas);
+    const [[cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos], perdas, extras] = await Promise.all([buscar(userId), buscarPerdas(userId), buscarExtras(userId)]);
+    return montarFrangoData(cfg[0] || CONFIG_PADRAO, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos, perdas, extras);
+}
+
+/** Carrega tudo para a tela (cria a config e lança os fixos do mês, se faltar). */
+async function buscarTudo(userId: string): Promise<FrangoData | 'SEM_ACESSO'> {
+    const { data: acesso } = await supabase.from('negocios_acesso')
+        .select('modulo').eq('user_id', userId).eq('modulo', 'frango').maybeSingle();
+    if (!acesso) return 'SEM_ACESSO';
+
+    let [[cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos], perdas, extras] = await Promise.all([buscar(userId), buscarPerdas(userId), buscarExtras(userId)]);
+
+    if (!cfg.length) {
+        await supabase.from('frango_config').upsert({ user_id: userId, ...CONFIG_PADRAO }, { onConflict: 'user_id', ignoreDuplicates: true });
+        cfg = [{ ...CONFIG_PADRAO }];
+    }
+    if (await lancarFixosDoMes(userId, mesAtual(), fixos)) {
+        custos = (await supabase.from('frango_custos').select('*').eq('user_id', userId).order('created_at').limit(5000)).data || custos;
+    }
+    return montarFrangoData(cfg[0], fixos, clientes, compras, custos, fechamentos, fiados, recebimentos, perdas, extras);
 }
 
 export function useFrangoData(userId: string | undefined) {
@@ -85,22 +124,12 @@ export function useFrangoData(userId: string | undefined) {
     const recarregar = useCallback(async () => {
         if (!userId) return;
         try {
-            const { data: acesso } = await supabase.from('negocios_acesso')
-                .select('modulo').eq('user_id', userId).eq('modulo', 'frango').maybeSingle();
-            if (!acesso) { setErro('SEM_ACESSO'); return; }
-
-            let [[cfg, fixos, clientes, compras, custos, fechamentos, fiados, recebimentos], perdas] = await Promise.all([buscar(userId), buscarPerdas(userId)]);
-
-            if (!cfg.length) {
-                await supabase.from('frango_config').upsert({ user_id: userId, ...CONFIG_PADRAO }, { onConflict: 'user_id', ignoreDuplicates: true });
-                cfg = [{ ...CONFIG_PADRAO }];
-            }
-            if (await lancarFixosDoMes(userId, mesAtual(), fixos)) {
-                custos = (await supabase.from('frango_custos').select('*').eq('user_id', userId).order('created_at').limit(5000)).data || custos;
-            }
-
-            setData(montarFrangoData(cfg[0], fixos, clientes, compras, custos, fechamentos, fiados, recebimentos, perdas));
-            setErro(null);
+            // mostra na hora o que já estava guardado e atualiza por trás
+            await carregarComCache('frango', `frango:${userId}`, () => buscarTudo(userId), r => {
+                if (r === 'SEM_ACESSO') setErro('SEM_ACESSO');
+                else { setData(r); setErro(null); }
+                setCarregando(false);
+            });
         } catch (e: any) {
             const semTabela = e?.code === '42P01' || e?.code === 'PGRST205' || /does not exist|schema cache/i.test(e?.message || '');
             setErro(semTabela ? 'SEM_TABELAS' : (e?.message || 'Erro ao carregar'));

@@ -45,6 +45,8 @@ export const useAppStore = create<AppState>()(
             partialize: (state) => ({
                 anthropicKey: state.anthropicKey,
                 activeMonth: state.activeMonth,
+                // guardada no aparelho para o app abrir sem esperar o banco (é atualizada em segundo plano)
+                userConfig: state.userConfig,
             }),
         }
     )

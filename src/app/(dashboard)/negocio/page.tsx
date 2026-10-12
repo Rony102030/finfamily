@@ -13,8 +13,9 @@ import { ComprasTab } from "./tabs/ComprasTab";
 import { FiadosTab } from "./tabs/FiadosTab";
 import { EstoqueTab } from "./tabs/EstoqueTab";
 import { AjustesTab } from "./tabs/AjustesTab";
+import { CaixaTab } from "./tabs/CaixaTab";
 
-export type Aba = 'resumo' | 'fechamento' | 'compras' | 'fiados' | 'estoque' | 'ajustes';
+export type Aba = 'resumo' | 'fechamento' | 'compras' | 'fiados' | 'estoque' | 'caixa' | 'ajustes';
 
 const abas: { id: Aba; label: string }[] = [
     { id: 'resumo', label: 'Resumo' },
@@ -22,6 +23,7 @@ const abas: { id: Aba; label: string }[] = [
     { id: 'compras', label: 'Compras' },
     { id: 'fiados', label: 'Fiados' },
     { id: 'estoque', label: 'Estoque' },
+    { id: 'caixa', label: 'Caixa' },
     { id: 'ajustes', label: 'Ajustes' },
 ];
 
@@ -79,6 +81,7 @@ export default function NegocioPage() {
                         {aba === 'compras' && <ComprasTab d={data} mes={activeMonth} userId={user.id} recarregar={recarregar} />}
                         {aba === 'fiados' && <FiadosTab d={data} userId={user.id} recarregar={recarregar} />}
                         {aba === 'estoque' && <EstoqueTab d={data} mes={activeMonth} userId={user.id} recarregar={recarregar} irPara={setAba} />}
+                        {aba === 'caixa' && <CaixaTab d={data} userId={user.id} recarregar={recarregar} />}
                         {aba === 'ajustes' && <AjustesTab d={data} userId={user.id} recarregar={recarregar} />}
                     </>
                 )}

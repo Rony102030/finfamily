@@ -10,7 +10,9 @@ import { Eye, EyeOff, Plus, ArrowUpCircle, PiggyBank, List, TrendingUp, Trending
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, CartesianGrid, LabelList } from 'recharts';
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { TransactionModal } from "@/components/TransactionModal";
-import { carregarCaixinhas, guardadoNoMes, saldoCaixinha, isEmergenciaNome, DadosCaixinhas } from "@/lib/caixinhas";
+import { carregarComCache } from "@/lib/cache";
+import { buscarDashboard, chaveDashboard } from "@/lib/dados";
+import { guardadoNoMes, saldoCaixinha, isEmergenciaNome, DadosCaixinhas } from "@/lib/caixinhas";
 
 const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const nomeMes = (mes: string) => formatMonth(mes).split(" ")[0].toLowerCase();
@@ -33,13 +35,24 @@ function hojeLocal() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Gasto acumulado dia a dia (índice 1..último dia). */
+const pago = (t: any) => t.status !== 'pendente';
+/** Dia em que saiu o dinheiro: a data do pagamento (sem ela, a data do lançamento). */
+const dataDoPagamento = (t: any): string | null => t.data_pagamento || t.data || null;
+
+/**
+ * Gasto PAGO acumulado dia a dia (índice 1..último dia), pela data do pagamento.
+ * Pendente não entra. Pago antes do mês conta no dia 1; pago depois do mês não entra.
+ */
 function acumulado(txs: any[], mes: string) {
     const dias = diasNoMes(mes);
     const porDia = Array(dias + 1).fill(0);
     for (const t of txs) {
-        if (t.tipo !== 'despesa' || foraDasDespesas(t.categorias?.nome) || !t.data) continue;
-        const dia = Number(t.data.slice(8, 10));
+        if (t.tipo !== 'despesa' || foraDasDespesas(t.categorias?.nome) || !pago(t)) continue;
+        const dp = dataDoPagamento(t);
+        if (!dp) continue;
+        const m = dp.slice(0, 7);
+        if (m > mes) continue;
+        const dia = m < mes ? 1 : Number(dp.slice(8, 10));
         if (dia >= 1 && dia <= dias) porDia[dia] += t.valor;
     }
     for (let i = 1; i <= dias; i++) porDia[i] += porDia[i - 1];
@@ -82,20 +95,13 @@ export default function DashboardPage() {
         if (user && activeMonth) fetchData();
     }, [user, activeMonth]);
 
-    const fetchData = async () => {
-        setLoading(true);
-        const [currentRes, prevRes, trendRes, cx] = await Promise.all([
-            supabase.from('lancamentos').select('*, categorias(nome, cor, limite_mensal)').eq('user_id', user!.id).eq('mes', activeMonth),
-            supabase.from('lancamentos').select('tipo, valor, data, categorias(nome)').eq('user_id', user!.id).eq('mes', prevMonth),
-            supabase.from('lancamentos').select('mes, tipo, valor, categorias(nome)').eq('user_id', user!.id).in('mes', last6),
-            carregarCaixinhas(user!.id, activeMonth).catch(() => null),
-        ]);
-        setTxs(currentRes.data || []);
-        setPrevTxs(prevRes.data || []);
-        setTrendTxs(trendRes.data || []);
-        setCaixinhas(cx);
+    const fetchData = () => carregarComCache('dashboard', chaveDashboard(user!.id, activeMonth), () => buscarDashboard(user!.id, activeMonth), d => {
+        setTxs(d.txs);
+        setPrevTxs(d.prevTxs);
+        setTrendTxs(d.trendTxs);
+        setCaixinhas(d.caixinhas);
         setLoading(false);
-    };
+    }, () => setLoading(true)).catch(() => setLoading(false));
 
     // ---------------- ritmo de gastos (antes de qualquer return) ----------------
     const acAtual = useMemo(() => acumulado(txs, activeMonth), [txs, activeMonth]);
@@ -112,12 +118,13 @@ export default function DashboardPage() {
         return true;
     });
 
-    let rendaBruta = 0, despesas = 0;
+    let rendaBruta = 0, despesas = 0, despesasPagas = 0;
     const porCategoria: Record<string, { nome: string; cor: string; valor: number; limite: number }> = {};
     for (const t of filteredTxs) {
         if (t.tipo === 'renda') { rendaBruta += t.valor; continue; }
         if (foraDasDespesas(t.categorias?.nome)) continue;
         despesas += t.valor;
+        if (pago(t)) despesasPagas += t.valor;
         const nome = t.categorias?.nome || "Sem categoria";
         porCategoria[nome] ??= { nome, cor: t.categorias?.cor || '#4d9fff', valor: 0, limite: t.categorias?.limite_mensal || 0 };
         porCategoria[nome].valor += t.valor;
@@ -126,7 +133,10 @@ export default function DashboardPage() {
     const guardado = guardadoNoMes(movimentos, activeMonth);
     const liquido = rendaBruta - guardado;
     const sobra = liquido - despesas;
-    const pctUsado = liquido > 0 ? despesas / liquido : (despesas > 0 ? 1 : 0);
+    const aPagar = despesas - despesasPagas;
+    // O alerta olha só o que já foi pago; o que está pendente aparece à parte (comprometido).
+    const pctUsado = liquido > 0 ? despesasPagas / liquido : (despesasPagas > 0 ? 1 : 0);
+    const pctAPagar = liquido > 0 ? aPagar / liquido : 0;
     const categorias = Object.values(porCategoria).sort((a, b) => b.valor - a.valor);
 
     // ---------------- mês atual, passado ou futuro ----------------
@@ -143,7 +153,7 @@ export default function DashboardPage() {
     else if (ehMesAtual) heroTitulo = `Ainda dá pra gastar em ${nomeMes(activeMonth)}`;
     else if (activeMonth < mesHoje) heroTitulo = `Sobrou em ${nomeMes(activeMonth)}`;
     else heroTitulo = `Previsto para ${nomeMes(activeMonth)}`;
-    const heroCor = sobra < 0 ? "text-brand-red" : pctUsado >= 0.9 ? "text-brand-yellow" : "text-brand-green";
+    const heroCor = sobra < 0 ? "text-brand-red" : pctUsado + pctAPagar >= 0.9 ? "text-brand-yellow" : "text-brand-green";
     const barraCor = sobra < 0 ? "bg-brand-red" : pctUsado >= 0.9 ? "bg-brand-yellow" : "bg-brand-green";
 
     const diaComparado = Math.min(diaRef, acAnterior.length - 1);
@@ -235,18 +245,19 @@ export default function DashboardPage() {
                         <p className="text-sm text-foreground/60 mt-1">≈ {v(sobra / diasRestantes)} por dia até o dia {ultimoDia}</p>
                     )}
                     <div className="mt-5">
-                        <div className="h-2.5 bg-surface rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${barraCor}`} style={{ width: `${Math.min(100, Math.round(pctUsado * 100))}%` }} />
+                        <div className="h-2.5 bg-surface rounded-full overflow-hidden flex">
+                            <div className={`h-full ${barraCor}`} style={{ width: `${Math.min(100, Math.round(pctUsado * 100))}%` }} />
+                            {aPagar > 0 && <div className="h-full" style={{ width: `${Math.max(0, Math.min(100 - Math.round(pctUsado * 100), Math.round(pctAPagar * 100)))}%`, background: 'repeating-linear-gradient(135deg, rgba(255,201,77,0.55) 0 4px, rgba(255,201,77,0.2) 4px 8px)' }} />}
                         </div>
                         <div className="flex justify-between gap-2 text-xs text-foreground/60 mt-1.5">
-                            <span>Gasto {v(despesas)} ({Math.round(pctUsado * 100)}%)</span>
+                            <span>Pago {v(despesasPagas)} ({Math.round(pctUsado * 100)}%){aPagar > 0 && <> · <span className="text-brand-yellow">a pagar {v(aPagar)}</span></>}</span>
                             <span className="text-right">de {v(liquido)} líquido p/ gastos</span>
                         </div>
                     </div>
                     <div className="grid grid-cols-3 gap-3 mt-5 lg:mt-auto pt-5 border-t border-borders">
                         <Mini label="Renda" valor={v(rendaBruta)} />
                         <Mini label="Guardado" valor={v(guardado)} cor="text-brand-blue" />
-                        <Mini label="Gasto" valor={v(despesas)} cor="text-brand-red" />
+                        <Mini label="Pago" valor={v(despesasPagas)} cor="text-brand-red" />
                     </div>
                 </section>
 
@@ -258,15 +269,18 @@ export default function DashboardPage() {
                     <Acao href="/lancamentos" icone={<List className="w-5 h-5" />} label="Extrato" />
                 </section>
 
+                {/* Quanto da renda já está comprometido */}
+                <Comprometido renda={rendaBruta} guardado={guardado} pago={despesasPagas} pendente={aPagar} v={v} />
+
                 {/* Ritmo em uma frase */}
-                <section className="secao lg:col-span-3 lg:row-start-3 flex items-start gap-3 text-sm">
+                <section className="secao lg:col-start-3 lg:row-start-3 flex items-start gap-3 text-sm">
                     {diffRitmo !== null && diffRitmo > 0
                         ? <TrendingUp className="w-5 h-5 text-brand-red flex-shrink-0" />
                         : <TrendingDown className="w-5 h-5 text-brand-green flex-shrink-0" />}
                     <p className="text-foreground/85">
                         {diffRitmo === null
-                            ? <>Sem gastos em {nomeMes(prevMonth)} para comparar o ritmo.</>
-                            : <>{ehMesAtual ? `Até o dia ${diaRef}` : `Em ${nomeMes(activeMonth)}`} você gastou{" "}
+                            ? <>Sem contas pagas em {nomeMes(prevMonth)} para comparar o ritmo.</>
+                            : <>{ehMesAtual ? `Até o dia ${diaRef}` : `Em ${nomeMes(activeMonth)}`} você pagou{" "}
                                 <b className={diffRitmo > 0 ? "text-brand-red" : "text-brand-green"}>{Math.abs(Math.round(diffRitmo * 100))}% {diffRitmo > 0 ? "a mais" : "a menos"}</b>{" "}
                                 que em {nomeMes(prevMonth)} ({v(gastoAteHoje)} × {v(gastoAnteriorAteDia)}).</>}
                     </p>
@@ -342,7 +356,7 @@ export default function DashboardPage() {
                 <section className={`${card} lg:col-span-2 lg:col-start-1 lg:row-start-4`}>
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="font-heading font-bold text-white">Ritmo de gastos</h3>
-                        <span className="text-xs text-foreground/50">acumulado no mês</span>
+                        <span className="text-xs text-foreground/50">pago no mês, pelo dia do pagamento</span>
                     </div>
                     <div className="h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -460,4 +474,52 @@ function Acao({ label, icone, onClick, href }: { label: string; icone: React.Rea
     );
     const cls = "group flex flex-col items-center gap-1.5 py-1";
     return href ? <Link href={href} className={cls}>{conteudo}</Link> : <button onClick={onClick} className={cls}>{conteudo}</button>;
+}
+
+/** Renda dividida em pago, pendente, guardado e livre. Os pendentes saem do alerta e do ritmo, mas ficam visíveis aqui. */
+function Comprometido({ renda, guardado, pago, pendente, v }: { renda: number; guardado: number; pago: number; pendente: number; v: (n: number) => string }) {
+    const livre = renda - guardado - pago - pendente;
+    const pct = (n: number) => renda > 0 ? Math.max(0, n) / renda * 100 : 0;
+    const partes = [
+        { nome: "Já pago", valor: pago, cor: "#ff4d4d" },
+        { nome: "Pendente (comprometido)", valor: pendente, cor: "#ffc94d" },
+        { nome: "Guardado nas caixinhas", valor: guardado, cor: "#4d9fff" },
+        { nome: "Livre de verdade", valor: livre, cor: "#00e5a0" },
+    ];
+    return (
+        <section className="secao lg:col-span-2 lg:col-start-1 lg:row-start-3">
+            <div className="flex items-center justify-between gap-2 mb-3">
+                <h3 className="font-heading font-bold text-white">Quanto da renda já está comprometido</h3>
+                {renda > 0 && <span className="text-xs font-bold text-foreground/70 whitespace-nowrap">{Math.round(pct(pago + pendente + guardado))}%</span>}
+            </div>
+            {renda <= 0 ? <p className="text-sm text-foreground/50">Lance a renda do mês para ver a divisão.</p> : (
+                <>
+                    <div className="h-3 bg-surface rounded-full overflow-hidden flex">
+                        {partes.map(p => p.valor > 0 && <div key={p.nome} className="h-full" style={{ width: `${pct(p.valor)}%`, backgroundColor: p.cor }} title={p.nome} />)}
+                    </div>
+                    <div className="mt-3 divide-y divide-borders text-sm">
+                        <LinhaRenda nome="Renda do mês" valor={v(renda)} />
+                        {partes.map(p => (
+                            <LinhaRenda key={p.nome} nome={p.nome} cor={p.cor} valor={v(Math.abs(p.valor))} negativo={p.valor < 0}
+                                pct={p.valor < 0 ? undefined : Math.round(pct(p.valor))} destaque={p.nome === "Livre de verdade"} />
+                        ))}
+                    </div>
+                </>
+            )}
+        </section>
+    );
+}
+
+function LinhaRenda({ nome, valor, cor, pct, destaque = false, negativo = false }: { nome: string; valor: string; cor?: string; pct?: number; destaque?: boolean; negativo?: boolean }) {
+    return (
+        <div className="flex items-center justify-between gap-3 py-2">
+            <span className={`flex items-center gap-2 min-w-0 ${destaque ? "text-white font-bold" : "text-foreground/80"}`}>
+                {cor && <span className="w-2.5 h-2.5 rounded-sm inline-block flex-shrink-0" style={{ backgroundColor: cor }} />}
+                <span className="truncate">{nome}</span>
+            </span>
+            <span className={`font-bold whitespace-nowrap ${negativo ? "text-brand-red" : "text-white"}`}>
+                {negativo ? "−" : ""}{valor}{pct !== undefined && <span className="text-foreground/50 font-normal text-xs"> · {pct}%</span>}
+            </span>
+        </div>
+    );
 }

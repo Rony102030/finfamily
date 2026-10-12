@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Check, Edit2, Plus, Trash2, X, RotateCcw } from "lucide-react";
 import { FrangoData, Compra, Custo, CATEGORIAS_CUSTO, custoMedioHistorico, replayEstoque, limitesDoMes, hoje, dataCurta, formatBRL, agruparCaixas, textoCaixas } from "../calc";
-import { Card, CampoNumero, inputCls, labelCls, btnPrimario, btnSecundario, n, inteiro, Vazio } from "../ui";
+import { Card, CampoNumero, inputCls, labelCls, btnPrimario, btnSecundario, n, inteiro, Vazio, SeletorPagoCom, textoPagoCom } from "../ui";
 
 type Props = { d: FrangoData; mes: string; userId: string; recarregar: () => Promise<void> };
 
@@ -24,11 +24,13 @@ function CompraFrango({ d, mes, userId, recarregar }: Props) {
     const [kgCaixa, setKgCaixa] = useState(String(d.config.kg_por_caixa));
     // cada linha: "X caixas com Y frangos" (ex.: 5 com 8 + 5 com 7)
     const [grupos, setGrupos] = useState<{ qtd: string; frangos: string }[]>([{ qtd: "", frangos: "" }]);
+    const [pagoCom, setPagoCom] = useState<string>('pix');
     const [salvando, setSalvando] = useState(false);
+    const temMelhorias = !d.melhoriasIndisponivel;
 
-    const limpar = () => { setEditando(null); setData(hoje()); setPrecoKg(""); setKgCaixa(String(d.config.kg_por_caixa)); setGrupos([{ qtd: "", frangos: "" }]); };
+    const limpar = () => { setEditando(null); setData(hoje()); setPrecoKg(""); setKgCaixa(String(d.config.kg_por_caixa)); setGrupos([{ qtd: "", frangos: "" }]); setPagoCom('pix'); };
     const carregar = (c: Compra) => {
-        setEditando(c); setData(c.data); setPrecoKg(String(c.preco_kg)); setKgCaixa(String(c.kg_por_caixa));
+        setEditando(c); setData(c.data); setPrecoKg(String(c.preco_kg)); setKgCaixa(String(c.kg_por_caixa)); setPagoCom(c.pago_com || 'pix');
         setGrupos(agruparCaixas(c.caixas).map(g => ({ qtd: String(g.qtd), frangos: String(g.frangos) })));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -46,7 +48,7 @@ function CompraFrango({ d, mes, userId, recarregar }: Props) {
     const salvar = async () => {
         if (!completo) return alert("Preencha o preço do kg e, em cada linha, quantas caixas e quantos frangos vieram em cada uma.");
         setSalvando(true);
-        const campos = { data, preco_kg: n(precoKg), kg_por_caixa: n(kgCaixa), caixas };
+        const campos = { data, preco_kg: n(precoKg), kg_por_caixa: n(kgCaixa), caixas, ...(temMelhorias ? { pago_com: pagoCom } : {}) };
         const { error } = editando
             ? await supabase.from('frango_compras').update(campos).eq('id', editando.id)
             : await supabase.from('frango_compras').insert({ user_id: userId, ...campos });
@@ -103,6 +105,8 @@ function CompraFrango({ d, mes, userId, recarregar }: Props) {
                     </button>
                 </div>
 
+                {temMelhorias && <div className="mt-4 max-w-sm"><SeletorPagoCom value={pagoCom} onChange={setPagoCom} /></div>}
+
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-foreground/70">
                         {caixas.length * n(kgCaixa)} kg · <b className="text-white">{formatBRL(total)}</b> · {frangos} frangos
@@ -144,7 +148,7 @@ function CompraFrango({ d, mes, userId, recarregar }: Props) {
                                 <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 bg-surface border border-borders rounded-xl px-4 py-3">
                                     <div>
                                         <p className="text-white font-bold">{dataCurta(c.data)} · {c.caixas.length} {c.caixas.length === 1 ? "caixa" : "caixas"} ({textoCaixas(c.caixas)} · {qtd} frangos)</p>
-                                        <p className="text-xs text-foreground/60">{formatBRL(c.preco_kg)}/kg · {formatBRL(tot / qtd)}/frango</p>
+                                        <p className="text-xs text-foreground/60">{formatBRL(c.preco_kg)}/kg · {formatBRL(tot / qtd)}/frango{c.pago_com ? ` · ${textoPagoCom(c.pago_com)}` : ""}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <span className="font-bold text-brand-red">{formatBRL(tot)}</span>
@@ -167,10 +171,12 @@ function OutrosCustos({ d, mes, userId, recarregar }: Props) {
     const [categoria, setCategoria] = useState("");
     const [valor, setValor] = useState("");
     const [descricao, setDescricao] = useState("");
+    const [pagoCom, setPagoCom] = useState<string>('pix');
     const [salvando, setSalvando] = useState(false);
+    const temMelhorias = !d.melhoriasIndisponivel;
 
-    const limpar = () => { setEditando(null); setData(hoje()); setCategoria(""); setValor(""); setDescricao(""); };
-    const carregar = (c: Custo) => { setEditando(c); setData(c.data); setCategoria(c.categoria); setValor(String(c.valor)); setDescricao(c.descricao || ""); };
+    const limpar = () => { setEditando(null); setData(hoje()); setCategoria(""); setValor(""); setDescricao(""); setPagoCom('pix'); };
+    const carregar = (c: Custo) => { setEditando(c); setData(c.data); setCategoria(c.categoria); setValor(String(c.valor)); setDescricao(c.descricao || ""); setPagoCom(c.pago_com || 'pix'); };
 
     // último valor lançado de cada categoria (sem os fixos)
     const ultimos = useMemo(() => {
@@ -184,7 +190,7 @@ function OutrosCustos({ d, mes, userId, recarregar }: Props) {
     const salvar = async () => {
         if (!categoria.trim() || !(n(valor) > 0)) return alert("Escolha a categoria e o valor.");
         setSalvando(true);
-        const campos = { data, categoria: categoria.trim(), valor: n(valor), descricao: descricao.trim() || null };
+        const campos = { data, categoria: categoria.trim(), valor: n(valor), descricao: descricao.trim() || null, ...(temMelhorias ? { pago_com: pagoCom } : {}) };
         const { error } = editando
             ? await supabase.from('frango_custos').update(campos).eq('id', editando.id)
             : await supabase.from('frango_custos').insert({ user_id: userId, ...campos });
@@ -222,7 +228,7 @@ function OutrosCustos({ d, mes, userId, recarregar }: Props) {
                         <p className={labelCls}>Repetir último (data de hoje)</p>
                         <div className="flex flex-wrap gap-2">
                             {ultimos.map(u => (
-                                <button key={u.id} onClick={() => { setCategoria(u.categoria); setValor(String(u.valor)); setDescricao(u.descricao || ""); setData(hoje()); }}
+                                <button key={u.id} onClick={() => { setCategoria(u.categoria); setValor(String(u.valor)); setDescricao(u.descricao || ""); setData(hoje()); setPagoCom(u.pago_com || 'pix'); }}
                                     className="text-xs font-medium px-3 py-1.5 rounded-full border border-borders text-foreground/80 hover:border-brand-yellow hover:text-brand-yellow transition-colors">
                                     <RotateCcw className="w-3 h-3 inline mr-1" />{u.categoria} {formatBRL(u.valor)}
                                 </button>
@@ -247,6 +253,7 @@ function OutrosCustos({ d, mes, userId, recarregar }: Props) {
                         <label className={labelCls}>Descrição (opcional)</label>
                         <input value={descricao} onChange={e => setDescricao(e.target.value)} className={inputCls} />
                     </div>
+                    {temMelhorias && <SeletorPagoCom value={pagoCom} onChange={setPagoCom} />}
                     <button onClick={salvar} disabled={salvando} className={`${btnPrimario} w-full`}>
                         {salvando ? "Salvando..." : <>{editando ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />} {editando ? "Salvar" : "Lançar custo"}</>}
                     </button>
@@ -262,7 +269,7 @@ function OutrosCustos({ d, mes, userId, recarregar }: Props) {
                                     <p className="text-white font-medium truncate">
                                         {c.categoria} {c.fixo_id && <span className="text-[10px] uppercase font-bold text-brand-blue ml-1">fixo</span>}
                                     </p>
-                                    <p className="text-xs text-foreground/50 truncate">{dataCurta(c.data)}{c.descricao ? ` · ${c.descricao}` : ""}</p>
+                                    <p className="text-xs text-foreground/50 truncate">{dataCurta(c.data)}{c.descricao ? ` · ${c.descricao}` : ""}{c.pago_com === 'dono' || c.pago_com === 'dinheiro' ? ` · ${textoPagoCom(c.pago_com)}` : ""}</p>
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                     <span className="font-bold text-brand-red mr-1">{formatBRL(c.valor)}</span>

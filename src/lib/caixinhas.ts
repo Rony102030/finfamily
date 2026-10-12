@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { carregarComCache } from "@/lib/cache";
 
 // Caixinhas: dinheiro guardado por objetivo. Saldo = guardar − resgatar + ajustes.
 // A de emergência também desconta os lançamentos da categoria Emergência (gastos pagos com a reserva).
@@ -134,7 +135,9 @@ export function useCaixinhas(userId: string | undefined, mesAtivo: string) {
     const recarregar = useCallback(async () => {
         if (!userId) return;
         try {
-            setDados(await carregarCaixinhas(userId, mesAtivo));
+            // mostra na hora o que já estava guardado e atualiza por trás
+            await carregarComCache('caixinhas', `cx:${userId}:${mesAtivo}`, () => carregarCaixinhas(userId, mesAtivo),
+                d => { setDados(d); setCarregando(false); });
             setErro(null);
         } catch (e: any) {
             const semTabela = e?.code === '42P01' || e?.code === 'PGRST205' || /does not exist|schema cache/i.test(e?.message || '');

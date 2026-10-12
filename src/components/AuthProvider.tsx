@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
+import { limparCache } from "@/lib/cache";
+import { useAppStore } from "@/store";
 
 interface AuthContextType {
     user: User | null;
@@ -40,6 +42,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const signOut = async () => {
+        // os dados guardados no aparelho são da conta que está saindo
+        limparCache();
+        useAppStore.setState({ userConfig: null });
         await supabase.auth.signOut();
     };
 

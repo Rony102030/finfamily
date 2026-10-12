@@ -7,15 +7,26 @@ export interface FrangoConfig {
     kg_por_caixa: number;
     meta_mensal: number;
     template_whatsapp: string;
+    /** Saldo conferido do caixa: a partir do fim deste dia o app soma entradas e saídas. */
+    caixa_data?: string | null;
+    caixa_dinheiro?: number;
+    caixa_pix?: number;
 }
+/** Com o que foi paga uma compra ou custo: dinheiro do caixa, conta (Pix/cartão) ou do bolso do dono. */
+export type PagoCom = 'dinheiro' | 'pix' | 'dono';
 export interface CustoFixo { id: string; nome: string; valor: number; ativo: boolean; created_at: string }
 export interface Cliente { id: string; nome: string; telefone: string | null }
-export interface Compra { id: string; data: string; preco_kg: number; kg_por_caixa: number; caixas: number[]; observacao: string | null; created_at: string }
-export interface Custo { id: string; data: string; categoria: string; valor: number; descricao: string | null; fixo_id: string | null; mes: string | null }
+export interface Compra { id: string; data: string; preco_kg: number; kg_por_caixa: number; caixas: number[]; observacao: string | null; created_at: string; pago_com?: PagoCom | null }
+export interface Custo { id: string; data: string; categoria: string; valor: number; descricao: string | null; fixo_id: string | null; mes: string | null; pago_com?: PagoCom | null }
+/** Venda a um preço diferente do grande e do padrão. */
+export interface VendaOutra { qtd: number; preco: number }
 export interface Fechamento {
     id: string; data: string; farofa: boolean; assados: number; vend_grande: number; vend_padrao: number;
     preco_grande: number; preco_padrao: number; rec_dinheiro: number; rec_pix: number; rec_cartao: number;
     observacao: string | null; created_at: string;
+    vendas_outras?: VendaOutra[];
+    /** Quantas pessoas pediram e não tinha frango. */
+    procura_nao_atendida?: number;
 }
 export interface Fiado {
     id: string; cliente_id: string; fechamento_id: string | null; data: string; qtd: number; preco_un: number | null;
@@ -23,6 +34,10 @@ export interface Fiado {
 }
 export interface Recebimento { id: string; fiado_id: string; data: string; valor: number; forma: 'dinheiro' | 'pix' | 'cartao' }
 export interface Perda { id: string; data: string; qtd: number; motivo: string | null; created_at: string }
+/** Frango cru vendido direto do estoque. */
+export interface VendaCru { id: string; data: string; qtd: number; preco_un: number; temperado: boolean; forma: 'dinheiro' | 'pix' | 'cartao'; observacao: string | null; created_at: string }
+/** Conta corrente com o dono: pró-labore a pagar, retirada do caixa ou aporte. */
+export interface MovDono { id: string; data: string; tipo: 'pro_labore' | 'retirada' | 'aporte'; valor: number; forma: 'dinheiro' | 'pix' | null; descricao: string | null; created_at: string }
 
 export interface FrangoData {
     config: FrangoConfig;
@@ -37,6 +52,10 @@ export interface FrangoData {
     perdas?: Perda[];
     /** true enquanto a tabela frango_perdas não existe no banco. */
     perdasIndisponivel?: boolean;
+    vendasCru?: VendaCru[];
+    contaDono?: MovDono[];
+    /** true enquanto migration_melhorias_outubro.sql não foi rodada. */
+    melhoriasIndisponivel?: boolean;
 }
 
 export const CATEGORIAS_CUSTO = ["Tempero", "Embalagem", "Gás", "Carvão", "Gasolina", "Limpeza", "Energia", "Farofa", "Marketing", "Colaborador", "Outro"];
@@ -87,12 +106,16 @@ export function resumoFechamento(f: Fechamento, fiados: Fiado[]) {
     const fiadoQtd = fiados.reduce((s, x) => s + x.qtd, 0);
     const fiadoValor = fiados.reduce((s, x) => s + x.valor, 0);
     const fiadoGrande = fiados.filter(x => x.preco_un === f.preco_grande).reduce((s, x) => s + x.qtd, 0);
-    const vendidos = f.vend_grande + f.vend_padrao + fiadoQtd;
-    const totalVendido = f.vend_grande * f.preco_grande + f.vend_padrao * f.preco_padrao + fiadoValor;
+    const outras = f.vendas_outras || [];
+    const outrasQtd = outras.reduce((s, x) => s + x.qtd, 0);
+    const outrasValor = outras.reduce((s, x) => s + x.qtd * x.preco, 0);
+    const vendidos = f.vend_grande + f.vend_padrao + outrasQtd + fiadoQtd;
+    const totalVendido = f.vend_grande * f.preco_grande + f.vend_padrao * f.preco_padrao + outrasValor + fiadoValor;
     const recebido = f.rec_dinheiro + f.rec_pix + f.rec_cartao;
     return {
         vendidos,
         vendGrandeTotal: f.vend_grande + fiadoGrande,
+        outrasQtd,
         sobra: f.assados - vendidos,
         totalVendido: round2(totalVendido),
         recebido: round2(recebido),
@@ -130,17 +153,19 @@ export interface Consumo { frangosNaCaixa: number | null; qtd: number; custoUn: 
  * usa o último custo conhecido e fica marcado como "sem lote". Perda maior que o estoque só tira o que havia.
  */
 export function replayEstoque(d: FrangoData, ate?: string) {
-    type Ev = { data: string; ordem: number; compra?: Compra; fech?: Fechamento; perda?: Perda };
+    type Ev = { data: string; ordem: number; compra?: Compra; fech?: Fechamento; perda?: Perda; cru?: VendaCru };
     const evs: Ev[] = [
         ...d.compras.map(c => ({ data: c.data, ordem: 0, compra: c })),
         ...d.fechamentos.map(f => ({ data: f.data, ordem: 1, fech: f })),
         ...(d.perdas || []).map(p => ({ data: p.data, ordem: 2, perda: p })),
+        ...(d.vendasCru || []).map(v => ({ data: v.data, ordem: 3, cru: v })),
     ].filter(e => !ate || e.data <= ate)
         .sort((a, b) => a.data.localeCompare(b.data) || a.ordem - b.ordem);
 
     const lotes: Lote[] = [];
     const consumoPorFechamento = new Map<string, { custo: number; faltou: number; consumo: Consumo[] }>();
     const consumoPorPerda = new Map<string, { custo: number; qtd: number }>();
+    const consumoPorVendaCru = new Map<string, { custo: number; qtd: number }>();
     let ultimoCusto = 0;
 
     for (const ev of evs) {
@@ -170,8 +195,9 @@ export function replayEstoque(d: FrangoData, ate?: string) {
                 consumo.push({ frangosNaCaixa: null, qtd: precisa, custoUn: ultimoCusto });
             }
             consumoPorFechamento.set(ev.fech.id, { custo, faltou: precisa, consumo });
-        } else if (ev.perda) {
-            let precisa = ev.perda.qtd, custo = 0, qtd = 0;
+        } else if (ev.perda || ev.cru) {
+            // perda e venda de cru: só sai o que existe no estoque
+            let precisa = (ev.perda || ev.cru)!.qtd, custo = 0, qtd = 0;
             for (const lote of lotes) {
                 if (precisa <= 0) break;
                 if (lote.restante <= 0) continue;
@@ -181,7 +207,8 @@ export function replayEstoque(d: FrangoData, ate?: string) {
                 qtd += q;
                 custo += q * lote.custoUn;
             }
-            consumoPorPerda.set(ev.perda.id, { custo, qtd });
+            if (ev.perda) consumoPorPerda.set(ev.perda.id, { custo, qtd });
+            else consumoPorVendaCru.set(ev.cru!.id, { custo, qtd });
         }
     }
 
@@ -195,6 +222,7 @@ export function replayEstoque(d: FrangoData, ate?: string) {
         custoMedio: unidades > 0 ? valorParado / unidades : ultimoCusto,
         consumoPorFechamento,
         consumoPorPerda,
+        consumoPorVendaCru,
     };
 }
 
@@ -281,7 +309,7 @@ export function resultadoPeriodo(d: FrangoData, de: string, ate: string, estoque
     const fechs = d.fechamentos.filter(f => dentro(f.data));
 
     let vendas = 0, vendidos = 0, assados = 0, sobra = 0, custoFrango = 0, consumoCasa = 0;
-    let recDinheiro = 0, recPix = 0, recCartao = 0;
+    let recDinheiro = 0, recPix = 0, recCartao = 0, procura = 0;
     for (const f of fechs) {
         const r = resumoFechamento(f, fiadosDoFechamento(d, f.id));
         const c = estoque.consumoPorFechamento.get(f.id);
@@ -295,6 +323,19 @@ export function resultadoPeriodo(d: FrangoData, de: string, ate: string, estoque
         recDinheiro += f.rec_dinheiro;
         recPix += f.rec_pix;
         recCartao += f.rec_cartao;
+        procura += f.procura_nao_atendida || 0;
+    }
+
+    // frango cru vendido do estoque: entra como venda; o custo sai do lote
+    let receitaCru = 0, custoCru = 0, cruQtd = 0;
+    for (const v of (d.vendasCru || []).filter(v => dentro(v.data))) {
+        const valor = v.qtd * v.preco_un;
+        receitaCru += valor;
+        custoCru += estoque.consumoPorVendaCru.get(v.id)?.custo || 0;
+        cruQtd += v.qtd;
+        if (v.forma === 'dinheiro') recDinheiro += valor;
+        else if (v.forma === 'pix') recPix += valor;
+        else recCartao += valor;
     }
 
     const recebimentos = d.recebimentos.filter(r => dentro(r.data));
@@ -326,8 +367,8 @@ export function resultadoPeriodo(d: FrangoData, de: string, ate: string, estoque
         perdasQtd += c?.qtd || 0;
     }
 
-    const receita = vendas + fiadoAntigoRecebido;
-    const lucro = receita - custoFrango - outrosCustos - custosFixos - perdidos - perdasEstoque;
+    const receita = vendas + fiadoAntigoRecebido + receitaCru;
+    const lucro = receita - custoFrango - custoCru - outrosCustos - custosFixos - perdidos - perdasEstoque;
     const entrou = recDinheiro + recPix + recCartao;
 
     return {
@@ -341,8 +382,12 @@ export function resultadoPeriodo(d: FrangoData, de: string, ate: string, estoque
         perdidos: round2(perdidos),
         perdasEstoque: round2(perdasEstoque),
         perdasQtd,
+        receitaCru: round2(receitaCru),
+        custoCru: round2(custoCru),
+        cruQtd,
+        procura,
         lucro: round2(lucro),
-        margemPorFrango: vendidos > 0 ? round2(lucro / vendidos) : null,
+        margemPorFrango: vendidos + cruQtd > 0 ? round2(lucro / (vendidos + cruQtd)) : null,
         caixa: {
             dinheiro: round2(recDinheiro), pix: round2(recPix), cartao: round2(recCartao),
             entrou: round2(entrou),
@@ -379,8 +424,8 @@ export function lucroPorSemana(d: FrangoData, ate: string, semanas = 8, estoque 
  */
 export function contribuicaoPorFrango(d: FrangoData, ate: string, dias = 60, estoque = replayEstoque(d)) {
     const r = resultadoPeriodo(d, somaDias(ate, -dias + 1), ate, estoque);
-    if (r.vendidos === 0) return null;
-    return (r.receita - r.custoFrango - r.outrosCustos) / r.vendidos;
+    if (r.vendidos + r.cruQtd === 0) return null;
+    return (r.receita - r.custoFrango - r.custoCru - r.outrosCustos) / (r.vendidos + r.cruQtd);
 }
 
 /** Fixos do mês: os já lançados ou, se ainda não houver, a soma dos fixos ativos. */
@@ -448,4 +493,68 @@ export function efeitoFarofa(d: FrangoData) {
         com: media(d.fechamentos.filter(f => f.farofa)),
         sem: media(d.fechamentos.filter(f => !f.farofa)),
     };
+}
+
+// ---------- saldo do caixa e conta com o dono ----------
+
+export const PAGO_COM: { id: PagoCom; label: string }[] = [
+    { id: 'pix', label: 'Conta (Pix)' },
+    { id: 'dinheiro', label: 'Dinheiro do caixa' },
+    { id: 'dono', label: 'Bolso do dono' },
+];
+
+export interface MovCaixa { data: string; descricao: string; dinheiro: number; conta: number }
+
+/**
+ * Saldo do caixa em dinheiro e na conta (Pix + cartão), a partir do saldo conferido em Ajustes/Caixa.
+ * Conta tudo que aconteceu DEPOIS do dia conferido. Compra/custo sem "pago com" conta como saído da conta.
+ * `null` enquanto o saldo nunca foi conferido.
+ */
+export function saldoCaixa(d: FrangoData, ate = hoje()) {
+    const desde = d.config.caixa_data;
+    if (!desde) return null;
+    const dentro = (x: string) => x > desde && x <= ate;
+    const movs: MovCaixa[] = [];
+    const add = (data: string, descricao: string, dinheiro: number, conta: number) => {
+        if (dinheiro || conta) movs.push({ data, descricao, dinheiro: round2(dinheiro), conta: round2(conta) });
+    };
+    for (const f of d.fechamentos.filter(f => dentro(f.data))) add(f.data, "Vendas do dia", f.rec_dinheiro, f.rec_pix + f.rec_cartao);
+    for (const r of d.recebimentos.filter(r => dentro(r.data))) add(r.data, "Fiado recebido", r.forma === 'dinheiro' ? r.valor : 0, r.forma === 'dinheiro' ? 0 : r.valor);
+    for (const v of (d.vendasCru || []).filter(v => dentro(v.data))) {
+        const valor = v.qtd * v.preco_un;
+        add(v.data, `Frango cru (${v.qtd})`, v.forma === 'dinheiro' ? valor : 0, v.forma === 'dinheiro' ? 0 : valor);
+    }
+    const saida = (data: string, descricao: string, valor: number, pagoCom?: PagoCom | null) => {
+        if (pagoCom === 'dono') return;
+        add(data, descricao, pagoCom === 'dinheiro' ? -valor : 0, pagoCom === 'dinheiro' ? 0 : -valor);
+    };
+    for (const c of d.compras.filter(c => dentro(c.data))) saida(c.data, `Compra de frango (${c.caixas.length} cx)`, c.preco_kg * c.kg_por_caixa * c.caixas.length, c.pago_com);
+    for (const c of d.custos.filter(c => dentro(c.data) && c.valor > 0)) saida(c.data, c.categoria, c.valor, c.pago_com);
+    for (const m of (d.contaDono || []).filter(m => dentro(m.data) && m.tipo !== 'pro_labore')) {
+        const sinal = m.tipo === 'retirada' ? -1 : 1;
+        const rotulo = m.tipo === 'retirada' ? "Retirada do dono" : "Aporte do dono";
+        add(m.data, rotulo, m.forma === 'dinheiro' ? sinal * m.valor : 0, m.forma === 'dinheiro' ? 0 : sinal * m.valor);
+    }
+    movs.sort((a, b) => b.data.localeCompare(a.data));
+    const dinheiro = (d.config.caixa_dinheiro || 0) + movs.reduce((s, m) => s + m.dinheiro, 0);
+    const conta = (d.config.caixa_pix || 0) + movs.reduce((s, m) => s + m.conta, 0);
+    return { desde, dinheiro: round2(dinheiro), conta: round2(conta), total: round2(dinheiro + conta), movimentos: movs };
+}
+
+export interface LinhaDono { data: string; descricao: string; valor: number; id?: string }
+
+/**
+ * Conta corrente com o dono. Positivo = o negócio deve ao dono.
+ * Aumenta: custos/compras pagos do bolso do dono, pró-labore, aporte. Diminui: retirada.
+ */
+export function contaComDono(d: FrangoData) {
+    const linhas: LinhaDono[] = [];
+    for (const c of d.custos.filter(c => c.pago_com === 'dono' && c.valor > 0)) linhas.push({ data: c.data, descricao: `${c.categoria} pago do bolso`, valor: c.valor });
+    for (const c of d.compras.filter(c => c.pago_com === 'dono')) linhas.push({ data: c.data, descricao: "Compra de frango paga do bolso", valor: round2(c.preco_kg * c.kg_por_caixa * c.caixas.length) });
+    for (const m of d.contaDono || []) {
+        const rotulo = m.tipo === 'pro_labore' ? "Pró-labore" : m.tipo === 'retirada' ? "Retirada" : "Aporte";
+        linhas.push({ id: m.id, data: m.data, descricao: m.descricao ? `${rotulo} · ${m.descricao}` : rotulo, valor: m.tipo === 'retirada' ? -m.valor : m.valor });
+    }
+    linhas.sort((a, b) => b.data.localeCompare(a.data));
+    return { saldo: round2(linhas.reduce((s, l) => s + l.valor, 0)), linhas };
 }

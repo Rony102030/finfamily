@@ -7,6 +7,32 @@ import { GlobalShortcuts } from "@/components/GlobalShortcuts";
 import { Wallet, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
+import { useAppStore } from "@/store";
+import { preCarregarTelas } from "@/lib/dados";
+
+// No celular o menu fica fechado, então o Next não pré-carrega as telas sozinho.
+const TELAS = ["/dashboard", "/lancamentos", "/caixinhas", "/recorrentes", "/relatorios", "/negocio", "/perfil", "/configuracoes"];
+
+/** Quando o app fica parado, baixa as outras telas e os dados do mês para a navegação ser instantânea. */
+function usePreCarregamento() {
+    const router = useRouter();
+    const { user } = useAuth();
+    const activeMonth = useAppStore(s => s.activeMonth);
+    useEffect(() => {
+        if (!user) return;
+        const quandoParado = (fn: () => void) => {
+            const w = window as any;
+            if (w.requestIdleCallback) { const id = w.requestIdleCallback(fn, { timeout: 4000 }); return () => w.cancelIdleCallback(id); }
+            const id = window.setTimeout(fn, 1500);
+            return () => window.clearTimeout(id);
+        };
+        return quandoParado(() => {
+            TELAS.forEach(t => router.prefetch(t));
+            preCarregarTelas(user.id, activeMonth);
+        });
+    }, [user, activeMonth, router]);
+}
 
 export default function DashboardLayout({
     children,
@@ -15,6 +41,7 @@ export default function DashboardLayout({
 }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const router = useRouter();
+    usePreCarregamento();
 
     useEffect(() => {
         // Redireciona o fluxo de redefinição de senha caso o Supabase mande para cá por padrão

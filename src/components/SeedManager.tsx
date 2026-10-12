@@ -8,7 +8,8 @@ import { useAppStore } from "@/store";
 export function SeedManager({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const { userConfig, setUserConfig } = useAppStore();
-    const [loading, setLoading] = useState(true);
+    // com a configuração já guardada no aparelho, abre na hora e atualiza por trás
+    const [loading, setLoading] = useState(() => !useAppStore.getState().userConfig);
     const inited = useRef(false);
 
     useEffect(() => {
@@ -41,6 +42,9 @@ export function SeedManager({ children }: { children: React.ReactNode }) {
                     servico_extra_nome: configData.servico_extra_nome,
                     seed_done: configData.seed_done
                 });
+                setLoading(false);
+            } else {
+                // falha de rede etc.: não prende o app na tela de carregamento
                 setLoading(false);
             }
         };
